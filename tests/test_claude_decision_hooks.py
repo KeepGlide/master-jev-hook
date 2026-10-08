@@ -123,6 +123,31 @@ class DecisionHookTests(unittest.TestCase):
         self.assertIn("confirm", decision["permissionDecisionReason"])
         self.assertIn("🔷", out["systemMessage"])
 
+    def test_bash_gate_asks_in_every_mode_except_bypass(self):
+        for mode in ("default", "acceptEdits", "plan", "auto", None):
+            self.gateway.replies.append((200, choice("risk", "confirm", 0.93)))
+            event = self.bash("rm -rf build/ && git push --force origin main")
+            event["permission_mode"] = mode
+            out = self.run_hook("bash-gate", event)
+            self.assertEqual(out["hookSpecificOutput"]["permissionDecision"], "ask", mode)
+
+    def test_bash_gate_runs_without_asking_in_bypass_mode_but_still_consults_the_gateway(self):
+        self.gateway.replies.append((200, choice("risk", "confirm", 0.93)))
+        event = self.bash("rm -rf build/ && git push --force origin main")
+        event["permission_mode"] = "bypassPermissions"
+        out = self.run_hook("bash-gate", event)
+        self.assertNotIn("hookSpecificOutput", out)
+        self.assertIn("`confirm` (confidence", out["systemMessage"])
+        self.assertIn("Bypass mode, running without asking", out["systemMessage"])
+        self.assertEqual(len(self.gateway.requests), 1)
+
+    def test_bash_gate_still_denies_turning_off_the_gateway_in_bypass_mode(self):
+        self.gateway.replies.append((200, choice("off", "not_required", 0.9)))
+        event = self.bash(self.SELF_DISABLE_COMMANDS[0], self.conversation("Fix the failing test"))
+        event["permission_mode"] = "bypassPermissions"
+        out = self.run_hook("bash-gate", event)
+        self.assertEqual(out["hookSpecificOutput"]["permissionDecision"], "deny")
+
     def test_bash_gate_sends_an_empty_request_without_a_transcript(self):
         for transcript in (None, str(self.dir / "missing.jsonl")):
             self.gateway.replies.append((200, choice("risk", "routine", 0.9)))

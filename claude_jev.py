@@ -307,6 +307,8 @@ def bash_gate(event):
     note = f"🔷 JEV (Bash gate): `{verdict['choice']}` (confidence {pct(verdict['confidence'])})."
     if verdict["choice"] == "routine":
         return {"systemMessage": note}
+    if event.get("permission_mode") == "bypassPermissions":  # the user chose to skip prompts: note it, never ask
+        return {"systemMessage": note + " Bypass mode, running without asking."}
     return {"systemMessage": note, "hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "ask",
             "permissionDecisionReason": note + " Confirm before running."}}
 
