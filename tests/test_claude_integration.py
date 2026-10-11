@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+import os
 import shutil
 import shlex
 from pathlib import Path
@@ -20,6 +21,16 @@ def install(home, prefix, target, code, desktop, **kw):
     kw.setdefault("codex_home", home.parent / "Codex Home")
     with contextlib.redirect_stderr(io.StringIO()):  # Missing-client warnings on --target all.
         return installer.install(home, prefix, target, code, desktop, **kw)
+
+
+def launcher_command(home, mode):
+    """The hook command the installer writes for one claude_jev.py mode."""
+    return " ".join(map(shlex.quote, (str(Path(sys.executable).resolve()), str(home / "hooks/jev_launcher.py"), mode)))
+
+
+def hook_commands(settings_path):
+    hooks = json.loads(settings_path.read_text())["hooks"]
+    return [h["command"] for groups in hooks.values() for g in groups for h in g["hooks"]]
 
 
 class ClaudeIntegrationTests(unittest.TestCase):
@@ -89,7 +100,7 @@ class ClaudeIntegrationTests(unittest.TestCase):
             hooks = json.loads(before[home / "settings.json"])["hooks"]
             for event, count in (("UserPromptSubmit", 1), ("PreToolUse", 2), ("PostToolUse", 2),
                                  ("Stop", 1), ("PreCompact", 1)):
-                ours = [h for g in hooks[event] for h in g["hooks"] if str(prefix / "claude_jev.py") in h["command"]]
+                ours = [h for g in hooks[event] for h in g["hooks"] if str(home / "hooks/jev_launcher.py") in h["command"]]
                 self.assertEqual(len(ours), count, event)
                 self.assertTrue(all(h["timeout"] <= 12 for h in ours), event)
             tool = "mcp__master-jev-hook__request_decision"
@@ -166,12 +177,101 @@ class ClaudeIntegrationTests(unittest.TestCase):
             commands = [h["command"] for groups in hooks.values() for g in groups for h in g["hooks"]]
             self.assertFalse([c for c in commands if str(old) in c])  # Our hooks from another prefix leave.
             self.assertIn("mine", commands)  # A third-party hook stays.
-            self.assertEqual(len([c for c in commands if str(prefix / "claude_jev.py") in c]), len(installer.HOOKS))
+            self.assertEqual(len([c for c in commands if str(home / "hooks/jev_launcher.py") in c]), len(installer.HOOKS))
             self.assertEqual((home / "agents/my-agent.md").read_text(), agent)
             result = subprocess.run([sys.executable, str(prefix / "claude_jev.py"), "unknown-mode"], input="{}",
                                     text=True, capture_output=True, timeout=3)
             self.assertEqual(result.returncode, 0)  # Fail-open: an unknown mode never blocks PreToolUse.
             self.assertEqual(result.stdout, "")
+
+    def test_launcher_hooks_are_installed_and_reinstall_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home, prefix, code, desktop = self.paths(Path(directory))
+            install(home, prefix, "claude-code", code, desktop, node=shutil.which("node"))
+            self.assertEqual((home / "hooks/jev_launcher.py").read_bytes(),
+                             (installer.ROOT / "jev_launcher.py").read_bytes())
+            expected = sorted(launcher_command(home, mode) for _, _, mode, _, _ in installer.HOOKS)
+            self.assertEqual(sorted(hook_commands(home / "settings.json")), expected)
+            settings = (home / "settings.json").read_bytes()
+            install(home, prefix, "claude-code", code, desktop, node=shutil.which("node"))
+            self.assertEqual((home / "settings.json").read_bytes(), settings)
+            self.assertEqual(len(list((prefix / "backups").iterdir())), 1)
+
+    def test_claude_jev_form_hooks_migrate_to_launcher_in_place(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home, prefix, code, desktop = self.paths(Path(directory))
+            home.mkdir()
+            python = str(Path(sys.executable).resolve())
+            old_script = str(prefix / "claude_jev.py")
+            old_launcher = str(Path(directory) / "old claude/hooks/jev_launcher.py")
+            settings: dict[str, dict[str, list[dict]]] = {"hooks": {}}
+            position = {}
+            for event, matcher, mode, status, timeout in installer.HOOKS:
+                groups = settings["hooks"].setdefault(event, [])
+                script = old_launcher if mode == "drift" else old_script  # One stale launcher path too.
+                hook = {"type": "command", "command": " ".join(map(shlex.quote, (python, script, mode))),
+                        "timeout": timeout, **({"statusMessage": status} if status else {})}
+                groups.append({**({"matcher": matcher} if matcher else {}), "hooks": [hook]})
+                position[mode] = (event, len(groups) - 1)
+            (home / "settings.json").write_text(json.dumps(settings))
+            install(home, prefix, "claude-code", code, desktop, node=shutil.which("node"))
+            after = json.loads((home / "settings.json").read_text())["hooks"]
+            for event, matcher, mode, status, timeout in installer.HOOKS:
+                group = after[position[mode][0]][position[mode][1]]
+                hook = group["hooks"][0]
+                self.assertEqual(hook["command"], launcher_command(home, mode), mode)
+                self.assertEqual(group.get("matcher"), matcher, mode)
+                self.assertEqual(hook["timeout"], timeout, mode)
+                self.assertEqual(hook.get("statusMessage"), status, mode)
+            self.assertEqual(sorted(hook_commands(home / "settings.json")),
+                             sorted(launcher_command(home, mode) for _, _, mode, _, _ in installer.HOOKS))
+
+    def test_verify_accepts_both_hook_forms(self):
+        verify = installer.ROOT / "scripts/verify.sh"
+        with tempfile.TemporaryDirectory() as directory:
+            home, prefix, code, desktop = self.paths(Path(directory))
+            install(home, prefix, "claude-code", code, desktop, node=shutil.which("node"))
+            env = {"PATH": os.environ["PATH"], "HOME": directory, "CLAUDE_CONFIG_DIR": str(home),
+                   "PREFIX": str(prefix), "MASTER_JEV_GATEWAY_URL": "http://127.0.0.1:9"}
+
+            def verify_output() -> str:  # The gateway is not running: only the file and hook lines are asserted.
+                return subprocess.run(["bash", str(verify)], env=env, capture_output=True, text=True,
+                                      check=False, timeout=60).stdout
+
+            out = verify_output()
+            self.assertIn("ok     8 JEV hooks in settings.json", out)
+            self.assertIn("ok     jev_launcher.py (Claude Code hooks)", out)
+            settings = json.loads((home / "settings.json").read_text())
+            for groups in settings["hooks"].values():
+                for group in groups:
+                    for hook in group["hooks"]:
+                        mode = hook["command"].rsplit(" ", 1)[-1]
+                        hook["command"] = " ".join(map(shlex.quote, (sys.executable, str(prefix / "claude_jev.py"), mode)))
+            (home / "settings.json").write_text(json.dumps(settings))
+            self.assertIn("ok     8 JEV hooks in settings.json", verify_output())
+            (home / "hooks/jev_launcher.py").write_text("# edited\n")
+            self.assertIn("FAIL   jev_launcher.py (Claude Code hooks)", verify_output())
+
+    def test_prefix_outside_launcher_candidates_warns_on_dry_run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home, prefix, code, desktop = self.paths(Path(directory))
+            argv = ["install.py", "--target", "claude-code", "--claude-home", str(home), "--code-config", str(code),
+                    "--desktop-config", str(desktop), "--prefix", str(prefix), "--node", shutil.which("node"), "--dry-run"]
+            err = io.StringIO()
+            with patch.object(sys, "argv", argv), contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+                installer.main()
+            self.assertIn(f"JEV_HOOK_SCRIPT points to {prefix / 'claude_jev.py'}", err.getvalue())
+            self.assertFalse(home.exists())  # Dry run: nothing written.
+
+    def test_launcher_and_installer_agree_on_candidate_prefixes(self):
+        import jev_launcher
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.dict(os.environ, {"HOME": directory, "JEV_HOOK_SCRIPT": ""}):
+            self.assertEqual(installer.launcher_prefixes(),
+                             {installer.absolute(raw).parent for raw in jev_launcher.CANDIDATES})
+            for raw in jev_launcher.CANDIDATES:
+                self.assertIsNone(installer.prefix_warning(installer.absolute(raw).parent), raw)
+            self.assertIsNotNone(installer.prefix_warning(Path(directory) / "elsewhere"))
 
     def test_skill_is_installed_for_code_and_zipped_for_desktop(self):
         import zipfile
@@ -339,7 +439,7 @@ class ClaudeIntegrationTests(unittest.TestCase):
             commands = [hook["command"] for group in groups for hook in group["hooks"]]
             self.assertIn("other", commands)
             self.assertNotIn(old_command, commands)
-            self.assertTrue(any(str(prefix / "claude_jev.py") in command for command in commands))
+            self.assertTrue(any(str(home / "hooks/jev_launcher.py") in command for command in commands))
 
     def test_url_node_and_path_validation(self):
         for value in ("http://", "http://host", "http://user:pass@host:8795", "http://@host:8795",

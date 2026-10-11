@@ -305,7 +305,7 @@ mesmo assim. Outras opções úteis: `--node`, `--gateway-url`, `--claude-home`,
 qualquer escrita; a instalação é idempotente e faz backup do que substitui.
 
 Com a variável de ambiente `CLAUDE_CONFIG_DIR` definida, `install.py` grava
-`settings.json`, `rules/`, `skills/` e `.claude.json` diretamente em
+`settings.json`, `hooks/` (o `jev_launcher.py` que executa os hooks), `rules/`, `skills/` e `.claude.json` diretamente em
 `$CLAUDE_CONFIG_DIR` (inclusive como padrão de `--claude-home`), em vez de
 `~/.claude` e `~/.claude.json`.
 
@@ -461,7 +461,7 @@ Para desinstalar manualmente (se a instalação usou `CLAUDE_CONFIG_DIR`, troque
 
 - Remova a entrada `mcpServers.master-jev-hook` de `~/.claude.json` e de
   `claude_desktop_config.json`.
-- Remova os hooks cujo comando contém `PREFIX/claude_jev.py` em
+- Remova os hooks cujo comando executa `claude_jev.py` ou `hooks/jev_launcher.py` em
   `~/.claude/settings.json`.
 - Remova `~/.claude/rules/master-jev-hook.md` (só se ainda tiver o marcador
   `<!-- master-jev-hook-claude:managed -->` na primeira linha), qualquer bloco

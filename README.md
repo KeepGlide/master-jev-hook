@@ -309,7 +309,7 @@ whole plan is validated before any write; the installation is idempotent
 and backs up what it replaces.
 
 With the `CLAUDE_CONFIG_DIR` environment variable set, `install.py` writes
-`settings.json`, `rules/`, `skills/` and `.claude.json` directly to
+`settings.json`, `hooks/` (the `jev_launcher.py` that runs the hooks), `rules/`, `skills/` and `.claude.json` directly to
 `$CLAUDE_CONFIG_DIR` (including as the default for `--claude-home`), instead
 of `~/.claude` and `~/.claude.json`.
 
@@ -464,7 +464,7 @@ replace `~/.claude` and `~/.claude.json` below with `$CLAUDE_CONFIG_DIR` and
 
 - Remove the `mcpServers.master-jev-hook` entry from `~/.claude.json` and
   from `claude_desktop_config.json`.
-- Remove the hooks whose command contains `PREFIX/claude_jev.py` in
+- Remove the hooks whose command runs `claude_jev.py` or `hooks/jev_launcher.py` in
   `~/.claude/settings.json`.
 - Remove `~/.claude/rules/master-jev-hook.md` (only if it still has the
   `<!-- master-jev-hook-claude:managed -->` marker on its first line), any

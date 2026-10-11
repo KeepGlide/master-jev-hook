@@ -16,6 +16,8 @@ import tomllib
 from urllib.parse import urlsplit
 import zipfile
 
+from jev_launcher import CANDIDATES
+
 ROOT = Path(__file__).resolve().parent
 NAME = "master-jev-hook"
 BEGIN = "<!-- master-jev-hook-claude:begin -->"
@@ -36,6 +38,8 @@ HOOKS = (("SessionStart", "startup|resume|clear|compact|fork", "hook", "🔷 Mas
          ("PreCompact", None, "precompact", "🔷 JEV choosing what to preserve…", 12),
          ("PostToolUse", None, "drift", None, 8))
 MANAGED = "<!-- master-jev-hook-claude:managed -->"
+OWN_SCRIPTS = ("claude_jev.py", "jev_launcher.py")  # Hook scripts this project wrote: the direct form and the launcher.
+LAUNCHER = "hooks/jev_launcher.py"  # Under the Claude config dir.
 
 
 def skill_zip(raw):
@@ -82,6 +86,19 @@ def absolute(value):
     return path
 
 
+def launcher_prefixes():
+    """Folders where jev_launcher.py looks for claude_jev.py, derived from the launcher's own candidate list."""
+    return {absolute(raw).parent for raw in CANDIDATES}
+
+
+def prefix_warning(prefix):
+    """A warning when the launcher cannot find claude_jev.py under this prefix; None when it can."""
+    if prefix in launcher_prefixes():
+        return None
+    return (f"Warning: {prefix} is not a folder the hook launcher searches. The JEV hooks will skip silently "
+            f"unless JEV_HOOK_SCRIPT points to {prefix / 'claude_jev.py'}.")
+
+
 def validate_platform():
     if sys.version_info < (3, 11):
         raise ValueError("Python 3.11+ is required")
@@ -115,15 +132,46 @@ def validate_gateway_url(value):
         raise ValueError("Invalid gateway URL; use http(s)://host:port")
 
 
-def stale_hook(command, current):
-    """A claude_jev.py hook from a previous installation (different prefix, different Python, or a removed mode)."""
-    if not isinstance(command, str) or command in current:
-        return False
+def jev_mode(command):
+    """The claude_jev.py mode of a hook command of this project, direct or through the launcher; else None."""
+    if not isinstance(command, str):
+        return None
     try:
         argv = shlex.split(command)
     except ValueError:
+        return None
+    return argv[2] if len(argv) == 3 and Path(argv[1]).name in OWN_SCRIPTS else None
+
+
+def keep_hook(hook, commands, kept):
+    """Rewrite one hook in place to its current command; False when it must leave (removed mode or repeat)."""
+    mode = jev_mode(hook.get("command")) if isinstance(hook, dict) else None
+    if mode is None:
+        return True
+    if mode not in commands:
         return False
-    return len(argv) == 3 and Path(argv[1]).name == "claude_jev.py"
+    hook["command"] = commands[mode]
+    if hook["command"] in kept:
+        return False
+    kept.add(hook["command"])
+    return True
+
+
+def migrate_group(group, commands, kept):
+    if isinstance(group, dict) and isinstance(group.get("hooks"), list):
+        group["hooks"] = [h for h in group["hooks"] if keep_hook(h, commands, kept)]
+
+
+def migrate_hooks(hooks, commands):
+    """Previous installations of this project's hooks, rewritten in place. Returns the commands kept."""
+    kept = set()
+    for groups in hooks.values():
+        if not isinstance(groups, list):
+            continue
+        for group in groups:
+            migrate_group(group, commands, kept)
+        groups[:] = [g for g in groups if not isinstance(g, dict) or g.get("hooks") != []]
+    return kept
 
 
 def desktop_default():
@@ -215,10 +263,11 @@ def plan(targets, home, prefix, node, code_config, desktop_config, codex_home, g
     skill = (ROOT / "skills/master-jev-hook/SKILL.md").read_bytes()
     skill_path = home / "skills/master-jev-hook/SKILL.md"
     rule_path = home / "rules/master-jev-hook.md"
+    launcher = home / LAUNCHER
     codex_toml, codex_agents = codex_home / "config.toml", codex_home / "AGENTS.md"
     destinations = [script, helper, guide_path, chat_guide_path, helper_config, prefix / "master-jev-hook-skill.zip"]
     if "claude-code" in targets:
-        destinations.extend((home / "settings.json", home / "CLAUDE.md", rule_path, code_config, skill_path))
+        destinations.extend((home / "settings.json", home / "CLAUDE.md", rule_path, code_config, skill_path, launcher))
     if "claude-desktop" in targets:
         destinations.append(desktop_config)
     if "codex" in targets:
@@ -241,32 +290,27 @@ def plan(targets, home, prefix, node, code_config, desktop_config, codex_home, g
         changes[helper_config] = (json.dumps({"gateway_url": gateway_url, "guide_in_memory": "claude-code" in targets},
                                              ensure_ascii=False) + "\n").encode("utf-8")
     if "claude-code" in targets:
+        changes[launcher] = (ROOT / "jev_launcher.py").read_bytes()  # Hook entry point, independent of the prefix.
         settings_path = home / "settings.json"
         safe_target(settings_path)
         settings = json.loads(settings_path.read_text(encoding="utf-8")) if settings_path.exists() else {}
         if not isinstance(settings, dict) or not isinstance(settings.get("hooks", {}), dict):
             raise ValueError("invalid_settings")
         python = str(Path(sys.executable).resolve())
-        current = {" ".join(map(shlex.quote, (python, str(helper), mode))) for _, _, mode, _, _ in HOOKS}
-        for groups in settings.get("hooks", {}).values():  # Remove hooks from previous installations.
-            if not isinstance(groups, list):
-                continue
-            for group in groups:
-                if isinstance(group, dict) and isinstance(group.get("hooks"), list):
-                    group["hooks"] = [h for h in group["hooks"]
-                                      if not (isinstance(h, dict) and stale_hook(h.get("command"), current))]
-            groups[:] = [g for g in groups if not isinstance(g, dict) or g.get("hooks") != []]
+        commands = {mode: " ".join(map(shlex.quote, (python, str(launcher), mode))) for _, _, mode, _, _ in HOOKS}
+        kept = migrate_hooks(settings.get("hooks", {}), commands)  # Previous installations move to the launcher in place.
         for event, matcher, mode, status, timeout in HOOKS:
             groups = settings.setdefault("hooks", {}).setdefault(event, [])
             if not isinstance(groups, list) or any(not isinstance(g, dict) or not isinstance(g.get("hooks", []), list)
                     or any(not isinstance(h, dict) for h in g.get("hooks", [])) for g in groups):
                 raise ValueError("invalid_hooks")
-            command = " ".join(map(shlex.quote, (python, str(helper), mode)))
+            command = commands[mode]
             hook = {"type": "command", "command": command, "timeout": timeout, **({"statusMessage": status} if status else {})}
             group = {**({"matcher": matcher} if matcher else {}), "hooks": [hook]}
             existing = [i for i, g in enumerate(groups) if any(h.get("command") == command for h in g.get("hooks", []))]
             if not existing:
-                groups.append(group)
+                if command not in kept:  # Kept under another event by the migration: its place stays there.
+                    groups.append(group)
             elif len(groups[existing[0]].get("hooks", [])) == 1:
                 groups[existing[0]] = group  # Group is ours alone: update matcher, timeout and status.
         changes[settings_path] = (json.dumps(settings, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
@@ -404,6 +448,9 @@ def main():
         print(path)
     if backup:
         print("Backup:", backup)
+    warning = prefix_warning(args.prefix)
+    if warning and args.claude_home / LAUNCHER in paths:  # Only when this run installs the hooks.
+        print(warning, file=sys.stderr)
     desktop_config = absolute(args.desktop_config or desktop_default())
     if desktop_config in paths:  # Only print if Desktop is among the targets actually installed.
         print("Claude Desktop: reload the app. For Chat mode to always use the JEV,",

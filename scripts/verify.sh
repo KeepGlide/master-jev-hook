@@ -42,6 +42,7 @@ echo "Claude Code"
 if [ -d "$CLAUDE_HOME" ]; then
   check "master-jev-hook skill" "cmp -s '$REPO/skills/master-jev-hook/SKILL.md' '$CLAUDE_HOME/skills/master-jev-hook/SKILL.md'"
   check "guide rule file" "grep -q 'master-jev-hook-claude:managed' '$CLAUDE_HOME/rules/master-jev-hook.md'"
+  check "jev_launcher.py (Claude Code hooks)" "cmp -s '$REPO/jev_launcher.py' '$CLAUDE_HOME/hooks/jev_launcher.py'"
   mcp_json "$CLAUDE_JSON"
   python3 - "$CLAUDE_HOME/settings.json" <<'PY' || failures=$((failures + 1))
 import json, sys
@@ -49,10 +50,10 @@ try:
     hooks = json.load(open(sys.argv[1])).get("hooks", {})
 except (OSError, ValueError):
     hooks = {}
-cmds = {h["command"].rsplit(" ", 1)[-1] for groups in hooks.values() for g in groups for h in g.get("hooks", []) if "claude_jev.py" in h.get("command", "")}
+cmds = {h["command"].rsplit(" ", 1)[-1] for groups in hooks.values() for g in groups for h in g.get("hooks", []) if any(script in h.get("command", "") for script in ("claude_jev.py", "jev_launcher.py"))}
 expected = {"hook", "prompt", "pre", "post", "bash-gate", "stop-check", "precompact", "drift"}
 missing = sorted(expected - cmds)
-print("  " + ("ok     8 claude_jev.py hooks in settings.json" if not missing else "FAIL   missing hooks: " + ", ".join(missing)))
+print("  " + ("ok     8 JEV hooks in settings.json" if not missing else "FAIL   missing hooks: " + ", ".join(missing)))
 sys.exit(1 if missing else 0)
 PY
 else
