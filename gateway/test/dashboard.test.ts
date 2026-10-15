@@ -75,7 +75,7 @@ describe("GET /dashboard/events", () => {
     // `direct` never reaches upstream, and a failed Jev call leaves no trace to report.
     expect(events[0]!.status).toBeUndefined();
     expect(events[4]!.jev).toBeUndefined();
-    expect(router).toMatchObject({ client: "standalone", upstream: "https://llm.test/v1", jevModel: "jev-latest", recorded: 7 });
+    expect(router).toMatchObject({ client: "standalone", upstream: "https://llm.test/v1", jevModel: "jev-1.13.0", recorded: 7 });
   });
 
   it("reports a hint for requests that can only be nudged", async () => {

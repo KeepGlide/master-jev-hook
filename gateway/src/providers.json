@@ -5,7 +5,7 @@
     "keyEnv": "TYPESAFE_API_KEY",
     "keyUrl": "https://typesafe.ai",
     "url": "https://api.typesafe.ai/v1/systemone",
-    "model": "jev-latest"
+    "model": "jev-1.13.0"
   },
   "openrouter": {
     "label": "OpenRouter",
