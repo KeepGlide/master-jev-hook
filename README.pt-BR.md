@@ -238,7 +238,7 @@ completa):
 | `TYPESAFE_API_KEY` | (obrigatória) | Chave da API da TypeSafe |
 | `HOST` | `127.0.0.1` | Interface do gateway (loopback por padrão; qualquer outro endereço é recusado sem `ROUTER_API_KEY`) |
 | `PORT` | `8795` | Porta HTTP do gateway e do painel |
-| `JEV_MODEL` | `jev-latest` | Modelo do JEV (padrão do código para o provedor TypeSafe; `deploy/gateway.env.example` fixa `jev-1.13.0`) |
+| `JEV_MODEL` | `jev-1.13.0` | Modelo do JEV para o provedor TypeSafe, fixado em `jev-1.13.0`. O alias `jev-latest` pode ser definido aqui, mas ele avança para versões mais novas. |
 | `JEV_MIN_CONFIDENCE` | `0.65` | Confiança mínima do risco baixo |
 | `JEV_MIN_CONFIDENCE_MEDIUM` | `0.80` | Confiança mínima do risco médio |
 | `JEV_MIN_CONFIDENCE_HIGH` | `0.90` | Confiança mínima do risco alto |

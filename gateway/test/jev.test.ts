@@ -24,11 +24,11 @@ describe("choosing a provider", () => {
   });
 
   it("never sends one provider's model id to another", () => {
-    expect(resolveModel("typesafe", undefined)).toBe("jev-latest");
+    expect(resolveModel("typesafe", undefined)).toBe("jev-1.13.0");
     expect(resolveModel("typesafe", "jev-1.13.0")).toBe("jev-1.13.0");
     expect(resolveModel("openrouter", "jev-latest")).toBe("typesafe/jev-1.13");
     expect(resolveModel("openrouter", "typesafe/jev-1.13-20260917")).toBe("typesafe/jev-1.13-20260917");
-    expect(resolveModel("typesafe", "typesafe-ai/jev")).toBe("jev-latest");
+    expect(resolveModel("typesafe", "typesafe-ai/jev")).toBe("jev-1.13.0");
   });
 
   it("reads the matching key, endpoint and model into the config", () => {

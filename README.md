@@ -239,7 +239,7 @@ Main variables (see `gateway/.env.example` for the full list):
 | `TYPESAFE_API_KEY` | (required) | TypeSafe API key |
 | `HOST` | `127.0.0.1` | Gateway interface (loopback by default; any other address is refused without `ROUTER_API_KEY`) |
 | `PORT` | `8795` | Gateway and dashboard HTTP port |
-| `JEV_MODEL` | `jev-latest` | JEV model (code default for the TypeSafe provider; `deploy/gateway.env.example` pins `jev-1.13.0`) |
+| `JEV_MODEL` | `jev-1.13.0` | JEV model for the TypeSafe provider, pinned to `jev-1.13.0`. The `jev-latest` alias can be set here, but it moves to newer versions. |
 | `JEV_MIN_CONFIDENCE` | `0.65` | Minimum confidence for low risk |
 | `JEV_MIN_CONFIDENCE_MEDIUM` | `0.80` | Minimum confidence for medium risk |
 | `JEV_MIN_CONFIDENCE_HIGH` | `0.90` | Minimum confidence for high risk |
