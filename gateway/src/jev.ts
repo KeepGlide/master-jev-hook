@@ -101,7 +101,7 @@ export function createAskJev(config: Pick<Config, "jevProvider" | "jevApiKey" | 
         authorization: `Bearer ${config.jevApiKey}`,
         "content-type": "application/json",
         // OpenRouter attributes traffic by these; the others ignore them.
-        "http-referer": "https://github.com/sophia-phillipa/master-jev-hook",
+        "http-referer": "https://github.com/KeepGlide/master-jev-hook",
         "x-title": "master-jev-hook",
       },
       body: JSON.stringify(request),

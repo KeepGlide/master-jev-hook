@@ -17,7 +17,10 @@ HERE = Path(__file__).resolve().parent
 # The gateway's overall deadline for one /master/decide request (gateway/src/app.ts, retries included). The Bash
 # gate waits a second longer so a slow but answering JEV is never cut off; a test keeps the two in step.
 GATEWAY_DEADLINE_S = 15
-MCP_PREFIX = "mcp__master-jev-hook__"
+# Installed as a Claude Code plugin (hooks run with CLAUDE_PLUGIN_ROOT set), the MCP server is plugin-scoped and its
+# tools carry the plugin prefix; install.py registers the server at the user level, under the short prefix.
+MCP_PREFIX = ("mcp__plugin_master-jev-hook_master-jev-hook__" if os.environ.get("CLAUDE_PLUGIN_ROOT")
+              else "mcp__master-jev-hook__")
 REMINDER = ("Mandatory Master-JEV Hook rule: if this message leads to a decision with explicit eligible "
             "alternatives (approach, file, source, parameter, review, next step), call `request_decision` and "
             "wait for the result before deciding. About to read, compare or judge 3+ items (files, search hits, "
@@ -189,8 +192,9 @@ def no_decision(data, qid):
 
 
 def state_file(session, name):
-    folder = HERE / "state"
-    folder.mkdir(mode=0o700, exist_ok=True)
+    # Under the plugin the data folder survives updates; the plugin root does not, so no state goes there.
+    folder = Path(os.environ.get("CLAUDE_PLUGIN_DATA") or HERE) / "state"
+    folder.mkdir(mode=0o700, parents=True, exist_ok=True)
     cutoff = time.time() - 7 * 86400
     for old in folder.iterdir():
         if old.stat().st_mtime < cutoff:
