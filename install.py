@@ -33,7 +33,7 @@ HOOKS = (("SessionStart", "startup|resume|clear|compact|fork", "hook", "🔷 Mas
          ("UserPromptSubmit", None, "prompt", None, 3),
          ("PreToolUse", JEV_TOOLS, "pre", "🔷 Consulting JEV…", 3),
          ("PostToolUse", JEV_TOOLS, "post", None, 3),
-         ("PreToolUse", "Bash", "bash-gate", "🔷 JEV evaluating the command…", 8),
+         ("PreToolUse", "Bash", "bash-gate", "🔷 JEV evaluating the command…", 20),
          ("Stop", None, "stop-check", "🔷 JEV verifying completion…", 10),
          ("PreCompact", None, "precompact", "🔷 JEV choosing what to preserve…", 12),
          ("PostToolUse", None, "drift", None, 8))

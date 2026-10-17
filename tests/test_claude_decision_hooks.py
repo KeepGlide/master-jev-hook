@@ -1,7 +1,9 @@
 """Decision hooks of claude_jev.py: local filters, gateway request shape, fail-open and limits."""
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import importlib.util
 import json
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -215,6 +217,44 @@ class DecisionHookTests(unittest.TestCase):
         self.configure("http://127.0.0.1:9")
         out = self.run_hook("bash-gate", self.bash("git reset --hard HEAD~3"))
         self.assertNotIn("hookSpecificOutput", out or {})
+
+    def load_helper(self, name):
+        spec = importlib.util.spec_from_file_location(name, self.helper)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_bash_gate_waits_for_a_slow_gateway_answer(self):
+        claude_jev = self.load_helper("claude_jev_slow")
+        real_urlopen, delay = claude_jev.request.urlopen, [6]
+
+        def slow_urlopen(req, timeout):  # A gateway answering after `delay` seconds, without sleeping.
+            if timeout <= delay[0]:
+                raise TimeoutError("timed out")
+            return real_urlopen(req, timeout=timeout)
+
+        claude_jev.request.urlopen = slow_urlopen
+        self.addCleanup(setattr, claude_jev.request, "urlopen", real_urlopen)
+        for delay[0] in (6, 14.9):  # Anything inside the gateway's own deadline reaches the gate.
+            self.gateway.replies.append((200, choice("risk", "confirm", 0.93)))
+            out = claude_jev.bash_gate(self.bash("git reset --hard HEAD~3"))
+            self.assertEqual(out["hookSpecificOutput"]["permissionDecision"], "ask", delay[0])
+        delay[0] = 16.5  # Past the gate's own budget: still fail-open.
+        out = claude_jev.bash_gate(self.bash("git reset --hard HEAD~3"))
+        self.assertNotIn("hookSpecificOutput", out)
+        self.assertIn("no decision", out["systemMessage"])
+
+    def test_bash_gate_outlasts_the_gateway_deadline(self):
+        sys.path.insert(0, str(ROOT))
+        self.addCleanup(sys.path.remove, str(ROOT))
+        import install
+        claude_jev = self.load_helper("claude_jev_deadline")
+        deadlines = re.findall(r"AbortSignal\.timeout\((\d[\d_]*)\)",
+                               (ROOT / "gateway/src/app.ts").read_text(encoding="utf-8"))
+        self.assertTrue(deadlines)
+        self.assertEqual({int(d.replace("_", "")) for d in deadlines}, {claude_jev.GATEWAY_DEADLINE_S * 1000})
+        hook = next(timeout for *_, mode, _, timeout in install.HOOKS if mode == "bash-gate")
+        self.assertGreater(hook, claude_jev.GATEWAY_DEADLINE_S + 1)
 
     # --- Stop check --------------------------------------------------------------------------------
     def turn(self, *tools, prompt="Fix the bug", earlier=(), errors=(), reply=None):
