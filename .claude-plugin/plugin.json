@@ -2,7 +2,7 @@
   "name": "master-jev-hook",
   "version": "1.3.0-beta.1",
   "description": "JEV decisions for Claude Code: the master-jev-hook MCP tools (request_decision, jev_classify, jev_verify, jev_score, jev_rank), the skill that formulates them, and the hooks that check the gateway, remind the rule and gate risky Bash commands. Needs the local gateway (see README).",
-  "author": { "name": "KeepGlide", "url": "https://github.com/KeepGlide" },
+  "author": { "name": "Sophia Phillipa (KeepGlide)", "url": "https://github.com/KeepGlide" },
   "homepage": "https://github.com/KeepGlide/master-jev-hook",
   "repository": "https://github.com/KeepGlide/master-jev-hook",
   "license": "Apache-2.0",

@@ -648,3 +648,5 @@ A API pública que o SemVer protege cobre três coisas:
 
 Apache License 2.0 — veja [LICENSE](LICENSE) e [NOTICE](NOTICE). Créditos de
 terceiros em [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+Feito por [Sophia Phillipa](https://github.com/sophia-phillipa) na [KeepGlide](https://keepglide.com).
