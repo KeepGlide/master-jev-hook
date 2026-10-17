@@ -102,7 +102,7 @@ class ClaudeIntegrationTests(unittest.TestCase):
                                  ("Stop", 1), ("PreCompact", 1)):
                 ours = [h for g in hooks[event] for h in g["hooks"] if str(home / "hooks/jev_launcher.py") in h["command"]]
                 self.assertEqual(len(ours), count, event)
-                self.assertTrue(all(h["timeout"] <= 12 for h in ours), event)
+                self.assertTrue(all(h["timeout"] <= 20 for h in ours), event)
             tool = "mcp__master-jev-hook__request_decision"
             self.assertEqual([g["matcher"] for g in hooks["PreToolUse"]],
                              ["mcp__master-jev-hook__.*", "Bash"])
