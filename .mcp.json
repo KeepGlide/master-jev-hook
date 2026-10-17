@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "master-jev-hook": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/gateway/bin/master-jev-mcp.mjs"],
+      "env": { "MASTER_JEV_GATEWAY_URL": "${MASTER_JEV_GATEWAY_URL:-http://127.0.0.1:8795}" }
+    }
+  }
+}
