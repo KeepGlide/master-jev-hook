@@ -2,6 +2,8 @@
 
 [![🇺🇸 English](https://img.shields.io/badge/%F0%9F%87%BA%F0%9F%87%B8-English-blue.svg)](README.md) [![🇧🇷 Português (Brasil)](https://img.shields.io/badge/%F0%9F%87%A7%F0%9F%87%B7-Portugu%C3%AAs%20(Brasil)-green.svg)](README.pt-BR.md)
 
+> ⚠️ **Early access (1.3.0-beta.1):** the Claude Code plugin packaging is new and its layout may change until a stable release. The gateway and the `install.py` path are unchanged.
+
 ## 💡 What it is
 
 Master-JEV Hook is a local service that connects Claude Code, Claude
@@ -183,7 +185,7 @@ every gateway restart.
 ### 1️⃣ Clone the repository
 
 ```bash
-git clone https://github.com/sophia-phillipa/master-jev-hook.git
+git clone https://github.com/KeepGlide/master-jev-hook.git
 ```
 
 ### 2️⃣ Build the gateway
@@ -317,6 +319,50 @@ After installing, restart the clients — sessions already open do not
 receive the new instructions. In Claude Code, `/mcp` lists the
 `master-jev-hook` server and `/hooks` shows the installed hooks.
 
+### 🧩 Claude Code: install as a plugin (instead of step 5)
+
+Claude Code can also load this project as a plugin. The plugin replaces step 5️⃣ for Claude Code only. Add the KeepGlide marketplace, then install the plugin:
+
+```bash
+claude plugin marketplace add KeepGlide/claude-plugins
+```
+
+```bash
+claude plugin install master-jev-hook@keepglide
+```
+
+Then restart Claude Code.
+
+The plugin provides:
+
+- the skill `master-jev-hook`, invoked as `/master-jev-hook:master-jev-hook`;
+- the MCP server: `/mcp` shows `plugin:master-jev-hook:master-jev-hook`, and its tools are named `mcp__plugin_master-jev-hook_master-jev-hook__<tool>`;
+- the same Claude Code hooks that `install.py` registers (SessionStart live test, rule reminder, JEV announcements, Bash gate, Stop check, PreCompact, drift), with their state kept in the plugin data folder.
+
+It does not cover:
+
+- the gateway: steps 1️⃣ to 4️⃣ still apply (clone, build, env file, service);
+- the rule file in `~/.claude/rules`: with the plugin, the SessionStart hook injects the rule into each session instead;
+- Claude Desktop and Codex: use `install.py` for them.
+
+The gateway URL defaults to `http://127.0.0.1:8795`. To change it, set `MASTER_JEV_GATEWAY_URL` in the environment before starting Claude Code.
+
+> ⚠️ Pick one path for Claude Code: the plugin **or** `python3 install.py --target claude-code`. With both, every hook runs twice and the tools are registered twice.
+
+To verify the plugin path:
+
+```bash
+claude plugin list
+```
+
+It shows `master-jev-hook@keepglide` with `Version: 1.3.0-beta.1`. `scripts/verify.sh` checks the `install.py` path only.
+
+To uninstall the plugin:
+
+```bash
+claude plugin uninstall master-jev-hook@keepglide
+```
+
 ### 6️⃣ Verify, at no cost
 
 ```bash
@@ -351,12 +397,13 @@ Or open `http://127.0.0.1:8795/dashboard` directly in the browser.
 | # | Step | Run | Expect |
 | --- | --- | --- | --- |
 | 1 | Check prerequisites | `node --version`, `python3 --version`, `pnpm --version` | Node ≥ 22.15, Python ≥ 3.11, pnpm 10.33.3 (without pnpm: `npm exec --yes --package=pnpm@10.33.3 -- pnpm`) |
-| 2 | Clone | `git clone https://github.com/sophia-phillipa/master-jev-hook.git` | `master-jev-hook/` with `install.py` and `gateway/`; run the next steps from it |
+| 2 | Clone | `git clone https://github.com/KeepGlide/master-jev-hook.git` | `master-jev-hook/` with `install.py` and `gateway/`; run the next steps from it |
 | 3 | Build the gateway | `cd gateway && pnpm install --frozen-lockfile --ignore-scripts && pnpm typecheck && pnpm build && cd ..` | exit code 0 and a `gateway/dist/` folder |
 | 4 | 🧑 Private env file | the commands of step 3️⃣ in Installation, then ask the human to fill in `TYPESAFE_API_KEY` and `JEV_LOG_FILE` | `~/.config/master-jev-hook/gateway.env` exists with mode `600`; an existing file is kept, never overwritten or opened |
 | 5 | Check the port | `curl -s http://127.0.0.1:8795/health` | no answer (port free), or `"status":"ok"` from a gateway already running: then skip step 6. Anything else: stop and ask |
 | 6 | 🧑 Gateway service | the commands of step 4️⃣ in Installation | `curl -s http://127.0.0.1:8795/health` returns `"status":"ok"` |
 | 7 | 🧑 Install on the clients | `python3 install.py --dry-run`; show the plan and ask which `--target`; then `python3 install.py --target <target>` | `Plan validated`, then `Master-JEV Hook installed` and a `Backup:` path |
+| 7b | 🧑 Optional, Claude Code only: install as a plugin instead of step 7 for Claude Code | `claude plugin marketplace add KeepGlide/claude-plugins`, then `claude plugin install master-jev-hook@keepglide` | `Successfully installed plugin: master-jev-hook@keepglide (scope: user)`, and `claude plugin list` shows `Version: 1.3.0-beta.1`. With 7b, step 8 reports the Claude Code items as missing; that is expected |
 | 8 | Verify at no cost | `scripts/verify.sh` | last line `All good.` and exit code 0 |
 | 9 | Hand back | ask the human to restart the clients | the next Claude Code session starts with `🔷 Master-JEV Hook gateway active: live JEV test passed` |
 
@@ -458,6 +505,8 @@ installation, not a replaced file). To restore, close the clients and copy
 back only the desired destinations from that backup, deleting the ones that
 had `backup: null`.
 
+If you installed the Claude Code plugin, remove it with `claude plugin uninstall master-jev-hook@keepglide`, and drop the marketplace with `claude plugin marketplace remove keepglide`.
+
 To uninstall manually (if the installation used `CLAUDE_CONFIG_DIR`,
 replace `~/.claude` and `~/.claude.json` below with `$CLAUDE_CONFIG_DIR` and
 `$CLAUDE_CONFIG_DIR/.claude.json`, respectively):
@@ -558,6 +607,7 @@ The project follows **GitHub Flow** with **Semantic Versioning**:
 - **Before merging,** a change passes the checks in [Development](#-development): Python tests, and the gateway typecheck, tests, build and install smoke. It is then merged into `main` with `--no-ff`. Outside contributors open a pull request against `main`.
 - **Commits** follow [Conventional Commits](https://www.conventionalcommits.org/), in English. When the README changes, `README.md` (English) and `README.pt-BR.md` (Portuguese) change in the same commit.
 - **A release** starts on a `chore/release-vX.Y.Z` branch with a `chore(release): vX.Y.Z` commit that bumps the versions. That branch is merged, and the annotated tag `vX.Y.Z` is created on `main`.
+- **Beta pre-releases** are tagged `vX.Y.Z-beta.N`, published on GitHub with `--prerelease`, and the plugin manifest `.claude-plugin/plugin.json` and `gateway/package.json` carry the same version.
 - **A hotfix** is a `fix/` branch from `main`, followed by a patch release.
 
 ```mermaid
