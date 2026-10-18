@@ -139,6 +139,20 @@ usada e o cliente segue com a alternativa local, sem repetir a decisão. Noul
 tem limiar próprio. Nenhum resultado do JEV prova fatos nem concede permissões
 por si só.
 
+**Escalas de Score.** A confiança de uma Score mede como a probabilidade se
+espalha pelos níveis ([docs.typesafe.ai/confidence](https://docs.typesafe.ai/confidence)),
+então o número e o texto dos níveis decidem quantas vezes uma Score abstém.
+No uso real (1.610 respostas, out. 2026) escalas de 3 níveis passaram o
+limiar de 0.65 em 94% das vezes, de 4 níveis em 37% e de 5 níveis em 15%.
+Use 3 níveis, a menos que mais níveis sejam descritíveis de forma distinta, e
+descreva cada nível como uma situação ("quebrado, com contorno"), não como
+um grau ("moderado"). A maioria das abstenções de Score é probabilidade
+dividida entre dois níveis vizinhos, o que ainda ordena os candidatos: uma
+Score abstida mantém o `score` esperado sob `status: abstain` (provisório,
+dentro de cerca de um nível), e o `jev_rank` a coloca no `ranking` enquanto
+a lista em `abstained`. Leia um ranking em ordem para triagem; quando o
+nível de um item decide uma ação, use só respostas com `status: ok`.
+
 ### Hooks do Claude Code
 
 Todos os hooks são fail-open: erro, timeout, abstenção do JEV ou confiança

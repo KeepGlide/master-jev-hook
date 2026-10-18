@@ -36,7 +36,8 @@ describe("risk-scaled thresholds", () => {
     expect(low).toMatchObject({ status: "ok", threshold: 0.65 });
     const high = await runWorkflow(parseWorkflow(single("high")), f.ask, "test", 0.9);
     expect(high).toMatchObject({ status: "abstain", threshold: 0.9 });
-    expect(high.answers.q).toMatchObject({ status: "abstain", score: null, confidence: 0.85 });
+    // The expected score survives abstention (tentative, for ordering); only the status says it is below threshold.
+    expect(high.answers.q).toMatchObject({ status: "abstain", score: 1, confidence: 0.85 });
   });
   it("maps risk to configured thresholds that never fall below the floor", async () => {
     const f = fake("yes", 0.85);
@@ -71,7 +72,7 @@ describe("batches, chains, composite and cascade", () => {
   it("invalidates composite after one low-confidence score", async () => {
     const f = fake("yes", 0.4), r = await runWorkflow(parseWorkflow(chain), f.ask, "test", 0.65);
     expect(r.status).toBe("partial");
-    expect(r.answers.support?.score).toBeNull();
+    expect(r.answers.support).toMatchObject({ status: "abstain", score: 1 });
     expect(r.composite?.value).toBeNull();
   });
   it("preserves cascade boundary semantics", async () => {
