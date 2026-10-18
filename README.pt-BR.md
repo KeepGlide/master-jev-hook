@@ -550,6 +550,9 @@ Depois, se quiser, remova a unit e as pastas
 
 ## 🔧 Desenvolvimento
 
+Mudanças por versão: [`CHANGELOG.md`](CHANGELOG.md) (em inglês); as medições por trás delas: [`docs/experiments.md`](docs/experiments.md).
+
+
 Testes do instalador e dos hooks (Python):
 
 ```bash

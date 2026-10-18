@@ -70,6 +70,11 @@ toggle in the masthead flips it (the one allowed script, ~10 lines).
      segurança 0,40 → composto 0,62 (ok), shown as a weight bar.
    - A one-line note: "Uma Score abstida mantém o score esperado (provisório, ±1 nível); o
      ranking do jev_rank ordena todas, as abstidas em `abstained`."
+   - A "What changed" line with a link to `CHANGELOG.md`: on 2026-10-18 the gateway stopped
+     discarding the expected score of an abstained Score and the hook questions `direction` and
+     `completion` were reworded (abstention 92 % → 19 % and 39 % → 20 %). **No weight or threshold
+     changed**: the floors stay 0,65 / 0,80 / 0,90 and `risk` keeps its wording; the panel shows
+     the thresholds as they are and the date of the last change.
 6. **Pedidos recebidos**: table, newest first, 8 rows from `sample-data.json`, outcome filter
    chips, "Mostrar mais 30". Columns: Hora, Pedido, Pergunta, Resultado, Resposta do JEV,
    Confiança, Tempo, Tokens. One row expanded showing the questions, options and the answer.
@@ -107,7 +112,7 @@ values (static HTML); the file is the single source so the mocks agree.
 | B | `b-daylight.html` | light | White surfaces on a pale Sky plane; Navy text; Teal fills; the fork mark large in the masthead; classic card grid, the weights panel as a wide card right under the tiles. |
 | C | `c-glide-board.html` | light | Bento board: tiles of mixed sizes on one 12-column grid; the weights panel is the hero (thresholds as three vertical gauges, scales as a small bar chart); a faint Sky dot-field background (CSS radial pattern) echoing the brand's point field. |
 | D | `d-instrument-panel.html` | dark | Dense telemetry: monospace numbers, a single horizontal 24 h timeline across the top, the thresholds as dial-like arcs (SVG), compact request list; for people who leave it open on a second screen. |
-| E | `e-navy-aurora.html` | dark | Brand palette (set A): navy with a faint teal aurora, hero pair Answered / No decision, floating cards. Sophia likes it, preferred of the two. |
+| E | `e-navy-aurora.html` | dark | Brand palette (set A): navy with a faint teal aurora, hero pair Answered / No decision, floating cards. **Chosen by Sophia on 2026-10-18 as the direction for the real dashboard and one of her favourite designs; the Ask Sophia Now dashboard adopts it too.** |
 | F | `f-lavender-glow.html` | dark | Lavender look of keepglide.com (set B), same layout as E. Sophia likes it; the letters were too big. |
 | G | `g-lavender-glance.html` | dark | F reduced for a lay reader: 13 px titles, 11 px captions, one status sentence, details behind expanders, calm tone, EN default with a live pt-BR switch. |
 | H | `h-navy-glance.html` | dark | E with the same treatment as G. |

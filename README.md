@@ -553,6 +553,9 @@ Afterward, if you want, remove the unit and the
 
 ## 🔧 Development
 
+Changes per version: [`CHANGELOG.md`](CHANGELOG.md); the measurements behind them: [`docs/experiments.md`](docs/experiments.md).
+
+
 Installer and hook tests (Python):
 
 ```bash
