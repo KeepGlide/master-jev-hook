@@ -1,0 +1,43 @@
+# Changelog
+
+All notable changes to Master-JEV Hook. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
+versions follow SemVer and the gateway's `package.json`. The measurements behind each entry live in
+[`docs/experiments.md`](docs/experiments.md).
+
+## [Unreleased]
+
+### Fixed
+
+- **The JEV answers far more often in batches (`jev_score`, `jev_rank`).** Since 2026-10-17 whole batches came back
+  abstained (8 of 8 in most rounds). The cause was not the JEV: Score `confidence` is a spread measure, not a
+  probability, and on 5-level scales it passed the 0.65 floor only 15 % of the time, even when the mass sat on two
+  adjacent levels and the ordering was right. The gateway now keeps the expected `score` of an abstained Score under
+  `status: abstain`, and `jev_rank` orders every scored candidate while listing the doubtful ones in `abstained`.
+  The tools, skill and READMEs tell callers to ask for 3 levels described as situations (94 % pass rate) instead of
+  4 or 5 degree words (37 % and 15 %). Commit `9225450`, merge `519f32d`.
+- **The hook's own questions abstain much less.** `direction` (drift detector) now describes situations and defaults
+  to `on_track` unless the recent actions clearly show otherwise: abstention 92 % → 19 % on reconstructed real
+  states. `completion` (Stop check) asks the one thing the hook acts on, `done_unverified` versus `other`: abstention
+  39 % → 20 % with the same recall and no new false flags. Commit `1ca9c12`, merge `021bcb4`. The installed copy is
+  not updated yet: `install.py` was not run.
+
+### Not changed, on purpose
+
+- **No weight or threshold changed.** The confidence floors stay `0.65` (low risk), `0.80` (medium) and `0.90`
+  (high), and `risk` (the Bash gate) keeps its wording and its 0.80 floor: two rewordings were tested and both
+  lowered the pass rate on the 94-case gauntlet, so its abstentions are the bar doing its job. Composite scores and
+  cascades still gate on `status`, so an abstained score never turns into a value. A Score-only lower floor and a
+  "mass within one level" rule were rejected because they would change the documented threshold contract.
+
+### Changed
+
+- The dashboard is being redesigned with the KeepGlide identity, the product mark ("the fork", KeepGlide DEC-004)
+  and an informative "Weights and thresholds" panel; CSS classes renamed to kebab-case BEM names
+  (`aebc8d5`). Mocks and contract in `docs/dashboard/mocks/`; Sophia chose mock E "navy aurora" on 2026-10-18.
+
+## [1.3.0-beta.1] - 2026-10-17
+
+- See the git history up to tag `v1.3.0-beta.1`; this changelog starts after it.
+
+[Unreleased]: https://github.com/KeepGlide/master-jev-hook/compare/v1.3.0-beta.1...HEAD
+[1.3.0-beta.1]: https://github.com/KeepGlide/master-jev-hook/releases/tag/v1.3.0-beta.1
