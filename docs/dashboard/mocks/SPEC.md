@@ -97,9 +97,9 @@ controls; `prefers-reduced-motion` respected; no colour pair below the contrast 
 ## Sample data
 
 `sample-data.json` holds the numbers above (hourly series, histogram, rows). Mocks inline the
-values (static HTML); the file is the single source so the four mocks agree.
+values (static HTML); the file is the single source so the mocks agree.
 
-## The four directions
+## The directions
 
 | Mock | File | Default theme | Direction |
 | --- | --- | --- | --- |
@@ -107,6 +107,13 @@ values (static HTML); the file is the single source so the four mocks agree.
 | B | `b-daylight.html` | light | White surfaces on a pale Sky plane; Navy text; Teal fills; the fork mark large in the masthead; classic card grid, the weights panel as a wide card right under the tiles. |
 | C | `c-glide-board.html` | light | Bento board: tiles of mixed sizes on one 12-column grid; the weights panel is the hero (thresholds as three vertical gauges, scales as a small bar chart); a faint Sky dot-field background (CSS radial pattern) echoing the brand's point field. |
 | D | `d-instrument-panel.html` | dark | Dense telemetry: monospace numbers, a single horizontal 24 h timeline across the top, the thresholds as dial-like arcs (SVG), compact request list; for people who leave it open on a second screen. |
+| E | `e-navy-aurora.html` | dark | Brand palette (set A): navy with a faint teal aurora, hero pair Answered / No decision, floating cards. Sophia likes it, preferred of the two. |
+| F | `f-lavender-glow.html` | dark | Lavender look of keepglide.com (set B), same layout as E. Sophia likes it; the letters were too big. |
+| G | `g-lavender-glance.html` | dark | F reduced for a lay reader: 13 px titles, 11 px captions, one status sentence, details behind expanders, calm tone, EN default with a live pt-BR switch. |
+| H | `h-navy-glance.html` | dark | E with the same treatment as G. |
+
+Decision (Askaway q-mvdtvb9d-593816, answer C): both palettes stay; Sophia compares G and H.
+Every mock from G on follows: English default, pt-BR flag switch in real time, informative only.
 
 Each mock is at most 700 lines, readable at 1280 px and at 390 px (phone: one column, 16 px
 gutters, no horizontal scroll).
