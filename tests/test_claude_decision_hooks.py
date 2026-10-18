@@ -288,15 +288,15 @@ class DecisionHookTests(unittest.TestCase):
         outputs = [self.run_hook("stop-check", self.stop(edited)) for _ in range(4)]
         _, body = self.gateway.requests[0]
         self.assertEqual(body["state"]["edited_files"], ["a.py"])
-        self.assertIn("done_unverified", body["questions"]["completion"]["criteria"])
+        self.assertEqual(set(body["questions"]["completion"]["criteria"]), {"done_unverified", "other"})
         for out in outputs[:3]:
             self.assertIn("verif", out["hookSpecificOutput"]["additionalContext"])
             self.assertNotIn("decision", out)
         self.assertIsNone(outputs[3])
         self.assertEqual(len(self.gateway.requests), 3)
 
-    def test_stop_check_accepts_verified_verdict(self):
-        self.gateway.replies.append((200, choice("completion", "done_verified", 0.9)))
+    def test_stop_check_accepts_other_verdict(self):
+        self.gateway.replies.append((200, choice("completion", "other", 0.9)))
         out = self.run_hook("stop-check", self.stop(self.turn(("Write", {"file_path": "b.md"}))))
         self.assertNotIn("hookSpecificOutput", out)
         self.assertIn("🔷", out["systemMessage"])
@@ -392,6 +392,8 @@ class DecisionHookTests(unittest.TestCase):
         self.assertEqual(body["state"]["earlier_requests"], [])
         self.assertEqual(body["state"]["previous_reply"], "")
         self.assertEqual(len(body["state"]["recent_actions"]), 30)
+        self.assertEqual(set(body["questions"]["direction"]["criteria"]), {"on_track", "stuck", "out_of_scope", "needs_user"})
+        self.assertIn("Choose on_track unless", body["questions"]["direction"]["instructions"])
         self.assertNotIn("risk", body)  # default low threshold: the instructions, not a higher bar, avoid false alarms
         self.assertIn("stuck", outputs[29]["hookSpecificOutput"]["additionalContext"])
         self.gateway.replies.append((200, choice("direction", "on_track", 0.9)))
