@@ -125,7 +125,8 @@ Tagged findings are the bracket-tagged lines in the five persona reports of each
   - R4-01: last-request chip keeps ageing while the gateway is offline.
   - R4-02: a paused router no longer reads as "needs attention".
   - R4-03: uptime under one hour: no "1 h of data" and no inflated per-hour rate.
-  - R4-04: pt-BR latency title "Tempo do JEV" (leads' rule: shorter string, true in both states).
+  - R4-04: pt-BR latency title "Tempo de resposta" (owner decision; matches EN "JEV response time").
+
   - R4-05: failing copy: no "masthead", "status pill" or "no answer"; the failing causes are named correctly.
   - R4-06: Partial tile sub: no "cards" in pt-BR; one clear clause set in EN.
   - R4-07: shares rounded so they sum to 100 (largest remainder).
@@ -204,7 +205,7 @@ Cumulative skip list, by reason. Each item is listed once, with the round where 
 - Failures pointer and "0.89 out of 1" sub (R3).
 - Window repeated in the received tile (R4): the leads kept it, because it is honest.
 - Next-signature minute and unscoped `.filter:hover` (R4): no visible defect.
-- `POLL_MS` 2 s against the 5 s note (R3, R4): owner's rule, not changed.
+- "Tempo do JEV" and "Latência do JEV" as the pt-BR latency title (R4): replaced by "Tempo de resposta" in R4-04.
 - "Tempo de resposta do JEV" as the pt-BR latency title (R4): longer than R4-04.
 
 ## 5. Open for the owner
