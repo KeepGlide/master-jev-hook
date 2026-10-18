@@ -158,17 +158,27 @@ describe("GET /dashboard", () => {
     expect(html).not.toMatch(/<(script|link|img)[^>]+(src|href)=/i);
   });
 
-  it("is branded Master-JEV Hook and orders status, chart, numbers, then the requests switch", async () => {
+  it("is branded Master-JEV Hook and orders status, hero, numbers, charts, then the details", async () => {
     const { app } = setup(fakeJev({}).askJev);
     const html = await (await app.request("/dashboard")).text();
     expect(html).toContain("<title>Master-JEV Hook</title>");
-    const order = ['id="status"', 'id="hourly"', 'id="tiles"', 'id="rows-switch"', 'id="requests"'].map((mark) => html.indexOf(mark));
+    expect(html).toContain('<html lang="en">');
+    const order = ['id="status"', 'id="hero"', 'id="tiles"', 'id="hourly"', 'id="requests"'].map((mark) => html.indexOf(mark));
     expect(order.every((position) => position > 0)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    // The list starts hidden behind an accessible switch; the choice is kept in browser storage.
-    expect(html).toMatch(/id="rows-switch" role="switch" aria-checked="false"/);
-    expect(html).toMatch(/<section class="card" id="requests" hidden>/);
-    expect(html).toContain('stored("master-jev-dashboard-rows")');
+    // The product mark is inline, and the company line reads "by KeepGlide".
+    expect(html).toContain('class="masthead__icon"');
+    expect(html).toContain("by KeepGlide");
+    // Informative only: no routing switch, and the page never posts back to the gateway.
+    expect(html).not.toMatch(/role="switch"|class="switch"|rows-switch/);
+    expect(html).not.toContain("/dashboard/routing");
+    expect(html).not.toMatch(/method:\s*"POST"/);
+    // No help buttons or dialog: each card explains itself in its caption.
+    expect(html).not.toContain("info-button");
+    expect(html).not.toContain("<dialog");
+    // The request list and the advanced table start collapsed.
+    expect(html).toContain('<details class="card details" id="requests">');
+    expect(html).toContain('<details class="card details" id="advanced">');
   });
 
   it("sits behind ROUTER_API_KEY, which a browser may present as ?key=", async () => {
@@ -182,5 +192,57 @@ describe("GET /dashboard", () => {
     }
     // The query form is for the dashboard alone.
     expect((await app.request("/v1/models?key=gateway-key")).status).toBe(401);
+  });
+});
+
+describe("dashboard page, static checks", () => {
+  const page = async () => {
+    const { app } = setup(fakeJev({}).askJev);
+    return (await app.request("/dashboard")).text();
+  };
+  // Full-line comments may name the rule they follow (the script says "never innerHTML"), so they are not code.
+  const code = (html: string) => html.replace(/^\s*\/\/.*$/gm, "");
+  // The literal `const STRINGS = {...}` of the script, evaluated as data; it has no side effects.
+  const translations = (html: string) => {
+    const start = html.indexOf("const STRINGS = ") + "const STRINGS = ".length;
+    const literal = html.slice(start, html.indexOf("\nconst params = ")).trim().replace(/;$/, "");
+    return new Function(`return ${literal};`)() as Record<"en" | "pt-BR", Record<string, unknown>>;
+  };
+
+  it("defines every var(--token) its stylesheet uses", async () => {
+    const html = await page();
+    const css = html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
+    const used = [...css.matchAll(/var\(\s*--([\w-]+)/g)].map((match) => match[1]!);
+    const defined = new Set([...html.matchAll(/--([\w-]+)\s*:/g)].map((match) => match[1]!));
+    expect(used.length).toBeGreaterThan(0);
+    expect(used.filter((name) => !defined.has(name))).toEqual([]);
+  });
+
+  it("renders with DOM nodes and textContent only, never an HTML-string sink", async () => {
+    expect(code(await page())).not.toMatch(/innerHTML|insertAdjacentHTML|document\.write/);
+  });
+
+  it("has unique ids, and every elementById() lookup and data-i18n key has a target", async () => {
+    const html = await page();
+    const ids = [...html.matchAll(/\sid="([^"]+)"/g)].map((match) => match[1]!);
+    expect(new Set(ids).size).toBe(ids.length);
+    const lookups = [...code(html).matchAll(/\belementById\("([^"]+)"\)/g)].map((match) => match[1]!);
+    expect(lookups.length).toBeGreaterThan(0);
+    expect(lookups.filter((id) => !ids.includes(id))).toEqual([]);
+    const keys = Object.keys(translations(html).en);
+    const marks = [...html.matchAll(/data-i18n="([^"]+)"/g)].map((match) => match[1]!);
+    expect(marks.filter((key) => !keys.includes(key))).toEqual([]);
+  });
+
+  it("keeps the English and Portuguese strings under the same top-level keys", async () => {
+    const strings = translations(await page());
+    expect(Object.keys(strings["pt-BR"]).sort()).toEqual(Object.keys(strings.en).sort());
+  });
+
+  it("gates the abstention warning on MIN_SAMPLE", async () => {
+    const script = code(await page());
+    expect(script).toMatch(/const MIN_SAMPLE = \d+;/);
+    const body = script.match(/function statusSentence\([^)]*\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
+    expect(body).toContain("MIN_SAMPLE");
   });
 });
