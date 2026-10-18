@@ -116,8 +116,9 @@ values (static HTML); the file is the single source so the mocks agree.
 | F | `f-lavender-glow.html` | dark | Lavender look of keepglide.com (set B), same layout as E. Sophia likes it; the letters were too big. |
 | G | `g-lavender-glance.html` | dark | F reduced for a lay reader: 13 px titles, 11 px captions, one status sentence, details behind expanders, calm tone, EN default with a live pt-BR switch. |
 | H | `h-navy-glance.html` | dark | E with the same treatment as G. |
+| E2 | `e2-navy-aurora-keepglide.html` | dark | E2 refines the chosen E: E's layout and type sizes kept; lightly worked background (aurora, dot field, glider arc, fork echo), hero pair in two equal columns (same width, top edge, and ring and sparkline on the same row), the fork icon enlarged in the masthead, one Coral accent, no help buttons (captions explain the numbers), EN default with a live pt-BR switch. Token and CSS deltas: `e2-deltas.md`. |
 
-Decision (Askaway q-mvdtvb9d-593816, answer C): both palettes stay; Sophia compares G and H.
+Decision (Askaway q-mvdtvb9d-593816, answer C): both palettes stay. Later Sophia chose E as the real dashboard direction; E2 refines it.
 Every mock from G on follows: English default, pt-BR flag switch in real time, informative only.
 
 Each mock is at most 700 lines, readable at 1280 px and at 390 px (phone: one column, 16 px
