@@ -18,8 +18,8 @@ versions follow SemVer and the gateway's `package.json`. The measurements behind
 - **The hook's own questions abstain much less.** `direction` (drift detector) now describes situations and defaults
   to `on_track` unless the recent actions clearly show otherwise: abstention 92 % → 19 % on reconstructed real
   states. `completion` (Stop check) asks the one thing the hook acts on, `done_unverified` versus `other`: abstention
-  39 % → 20 % with the same recall and no new false flags. Commit `1ca9c12`, merge `021bcb4`. The installed copy is
-  not updated yet: `install.py` was not run.
+  39 % → 20 % with the same recall and no new false flags. Commit `1ca9c12`, merge `021bcb4`. Applied to the
+  installed copy by `install.py --target claude-code` on 2026-10-18 (installed `claude_jev.py` matches the repository).
 
 ### Not changed, on purpose
 
@@ -31,9 +31,14 @@ versions follow SemVer and the gateway's `package.json`. The measurements behind
 
 ### Changed
 
-- The dashboard is being redesigned with the KeepGlide identity, the product mark ("the fork", KeepGlide DEC-004)
-  and an informative "Weights and thresholds" panel; CSS classes renamed to kebab-case BEM names
-  (`aebc8d5`). Mocks and contract in `docs/dashboard/mocks/`; Sophia chose mock E "navy aurora" on 2026-10-18.
+- **The dashboard page is rebuilt after mock E "navy aurora"** with the KeepGlide identity and the product mark
+  ("the fork", KeepGlide DEC-004): navy canvas, floating cards, a hero pair Answered / No decision with
+  plain-language captions, a one-line status sentence (abstentions above the usual share only from 20 requests),
+  tiles, the two charts, and the request list and advanced data collapsed. English by default with a live pt-BR
+  switch; light and dark follow the system. The rows switch and its `POST /dashboard/routing` call are gone from
+  the page (the route stays). Help buttons were tried and dropped: the cards explain themselves. CSS classes are
+  kebab-case BEM names (`aebc8d5`). Mocks and contract in `docs/dashboard/mocks/`; Sophia chose mock E on
+  2026-10-18 and its KeepGlide refinement E2 feeds the next pass.
 
 ## [1.3.0-beta.1] - 2026-10-17
 

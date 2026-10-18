@@ -56,8 +56,8 @@ variant, 3 runs on real states, 5 runs on labeled ones, paid TypeSafe calls (inp
   R2 (confirm listed first): pass 74% → 72%, `ask` 57% → 54%, abstain unchanged. Same 94 gauntlet bash cases, 3 runs,
   through the hook script. `risk` therefore keeps its wording and its 0.80 threshold: its abstentions are the bar doing its job.
 
-### Not done
-`~/.local/share/master-jev-hook/claude_jev.py` (installed copy) is not updated; `install.py` was not run. Sophia updates it.
+### Rollout
+Sophia ran `install.py --target claude-code` on 2026-10-18 (backup under `~/.local/share/master-jev-hook/backups/`); the installed `claude_jev.py` matches the repository (`cmp`).
 
 ## 2026-10-18 — mass Score abstentions in `jev_score` / `jev_rank` batches (fix)
 
