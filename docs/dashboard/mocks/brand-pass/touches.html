@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brand pass: touches switch for after.html</title>
+<style>
+body { margin: 0; padding: 16px; font: 400 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: CanvasText; background: Canvas; }
+fieldset { margin: 0 0 12px; padding: 8px 12px; border: 1px solid GrayText; border-radius: 12px; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+legend { padding: 0 6px; font-weight: 600; }
+label { display: inline-flex; align-items: center; gap: 6px; }
+iframe { display: block; width: 100%; height: calc(100vh - 150px); min-height: 480px; border: 1px solid GrayText; border-radius: 12px; }
+</style>
+</head>
+<body>
+<fieldset>
+  <legend>Touches on after.html</legend>
+  <label><input type="checkbox" data-touch="brand-tagline" checked> 1 Byline colour (sky in dark)</label>
+  <label><input type="checkbox" data-touch="brand-glyph" checked> 2 Fork glyph before the status row</label>
+  <label><input type="checkbox" data-touch="brand-icons" checked> 3 Lucide icons (chart-pie, send, coins, bars)</label>
+  <label><input type="checkbox" data-touch="brand-line" checked> 4 Brand line on the masthead top edge</label>
+</fieldset>
+<iframe id="mock" src="after.html" title="after.html with the touches switched by the boxes above"></iframe>
+<script>
+(function () {
+  "use strict";
+  var frame = document.getElementById("mock");
+  var boxes = document.querySelectorAll("[data-touch]");
+  // Each box toggles one class on the frame's <html>; the CSS in after.html does the rest.
+  function sync() {
+    var root = frame.contentDocument && frame.contentDocument.documentElement;
+    if (!root) return;
+    Array.prototype.forEach.call(boxes, function (box) {
+      root.classList.toggle(box.getAttribute("data-touch"), box.checked);
+    });
+  }
+  frame.addEventListener("load", sync);
+  Array.prototype.forEach.call(boxes, function (box) { box.addEventListener("change", sync); });
+})();
+</script>
+</body>
+</html>

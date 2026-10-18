@@ -236,7 +236,12 @@ Filed in the Askaway inbox, one question per item, and answered from the panel. 
 7. **A.** The "started at HH:MM; bars before that have no data" note shows under the hourly chart when the earliest shown router started inside the window and no kept-window note applies.
 8. **A.** EN spelling is American ("colors"); the confidence title reads "How sure the JEV was" / "Quanta certeza o JEV teve"; both hero kickers stay "JEV decisions".
 9. **A.** The Online pill keeps its dot and its check.
-10. **C.** Left as is; the brand pass is scheduled as its own session.
+10. **C, then shipped as its own brand pass (2026-10-18).** Mocks: `docs/dashboard/mocks/brand-pass/` (`before.html`, `after.html`, `touches.html`; screenshots `brand-pass-*`). Four touches, filed as four Askaway questions, all taken at the recommended option A (page: `gateway/src/dashboard.html` only):
+    - Tagline colour: new token `--tagline`, sky `#9AD9E6` in dark (6.8:1 on the raised card) and `#4A5670` in light (unchanged).
+    - Fork glyph: the 20 px product mark (`#brand-fork`, unrecoloured) before the status-sentence icon; hidden under 480 px so the sentence does not wrap more.
+    - Icons: Lucide 1.8.0 geometry for `pie`, `send`, `coins` and `bars`; the other eight already matched.
+    - Brand line: 2 px teal line on the top edge of the masthead (`--brand-line`, `#2BB8AE` dark, `#02736C` light).
+    Live check: EN and pt-BR, dark and light, no console errors; screenshots `brand-pass-live-*`. The Chrome window could not go wider than 455 px, so 1568 px was checked in a 1568 px iframe.
 
 ## 6. Round-4 ship verdict per group
 

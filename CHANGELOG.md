@@ -21,6 +21,9 @@ versions follow SemVer and the gateway's `package.json`. The measurements behind
   says "of kept" while the buffer is full; Partial is striped in the dark theme; the red band says since when it is
   red; the hourly chart notes the gateway's start time and keeps 12 px of top room; the thresholds chip hides under
   480 px; the confidence title and the EN spelling are revised. Record: gauntlet.md section 5.
+- **The dashboard got its brand pass (gauntlet owner question 10).** The tagline takes the identity sky/ink tokens, a
+  20 px fork mark leads the status sentence (hidden under 480 px), four icons (Partial, Not sent, Tokens, bars) now use
+  Lucide geometry, and a 2 px teal line tops the masthead. Nothing else changed. Record: gauntlet.md section 5, item 10.
 
 ### Fixed
 
