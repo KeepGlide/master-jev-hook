@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mocks do dashboard</title>
+<style>
+  :root { --color-teal: #2BB8AE; --color-teal-light: #7EE8DC; --color-coral: #F2715F; --color-navy: #1E2A47; --color-sky: #9AD9E6; --color-plane: #F4F8FA; --color-surface: #ffffff; --space-md: 16px; --space-lg: 24px; --radius-md: 12px; }
+  body { margin: 0; background: var(--color-plane); color: var(--color-navy); font: 16px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  .page { max-width: 960px; margin: 0 auto; padding: var(--space-lg) var(--space-md); }
+  .masthead { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-lg); }
+  .masthead__icon { width: 56px; height: 56px; }
+  .masthead__title { margin: 0; font-size: 1.5rem; }
+  .masthead__subtitle { margin: 0; color: #46526b; }
+  .mock-list { display: grid; gap: var(--space-md); grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); padding: 0; margin: 0; list-style: none; }
+  .mock-card { display: block; background: var(--color-surface); border: 1px solid var(--color-sky); border-radius: var(--radius-md); padding: var(--space-md); color: inherit; text-decoration: none; }
+  .mock-card:hover, .mock-card:focus-visible { border-color: var(--color-teal); outline: 3px solid transparent; }
+  .mock-card__letter { display: inline-block; width: 32px; height: 32px; line-height: 32px; text-align: center; border-radius: 50%; background: var(--color-teal); color: #fff; font-weight: 700; margin-bottom: 8px; }
+  .mock-card__name { margin: 0 0 4px; font-size: 1.1rem; }
+  .mock-card__note { margin: 0; font-size: .9rem; color: #46526b; }
+  .mock-card__theme { display: inline-block; margin-top: 8px; font-size: .8rem; padding: 2px 8px; border-radius: 999px; background: var(--color-sky); color: var(--color-navy); }
+  .footnote { margin-top: var(--space-lg); font-size: .9rem; color: #46526b; }
+</style>
+</head>
+<body>
+<main class="page">
+  <header class="masthead">
+    <img class="masthead__icon" src="assets/master-jev-hook-icon.svg" alt="">
+    <div>
+      <h1 class="masthead__title">Master-JEV Hook · mocks do dashboard</h1>
+      <p class="masthead__subtitle">Quatro direções com a identidade KeepGlide. Cada uma troca de tema pelo botão no topo.</p>
+    </div>
+  </header>
+  <ul class="mock-list">
+    <li><a class="mock-card" href="a-navy-flight.html"><span class="mock-card__letter">A</span><h2 class="mock-card__name">Navy flight</h2><p class="mock-card__note">Tela navy como o ícone da empresa, dados em Teal, linhas Sky, espaço generoso.</p><span class="mock-card__theme">escuro por padrão</span></a></li>
+    <li><a class="mock-card" href="b-daylight.html"><span class="mock-card__letter">B</span><h2 class="mock-card__name">Daylight</h2><p class="mock-card__note">Cartões brancos sobre plano Sky, marca grande no topo, painel de pesos logo abaixo dos números.</p><span class="mock-card__theme">claro por padrão</span></a></li>
+    <li><a class="mock-card" href="c-glide-board.html"><span class="mock-card__letter">C</span><h2 class="mock-card__name">Glide board</h2><p class="mock-card__note">Painel bento em 12 colunas, pesos e limiares como destaque, fundo com campo de pontos Sky.</p><span class="mock-card__theme">claro por padrão</span></a></li>
+    <li><a class="mock-card" href="d-instrument-panel.html"><span class="mock-card__letter">D</span><h2 class="mock-card__name">Instrument panel</h2><p class="mock-card__note">Telemetria densa para segunda tela: números monoespaçados, linha do tempo de 24 h, limiares em arcos.</p><span class="mock-card__theme">escuro por padrão</span></a></li>
+  </ul>
+  <p class="footnote">Dados de exemplo em <code>sample-data.json</code>; contrato em <code>SPEC.md</code>. O dashboard é só informativo: nenhum controle muda o gateway.</p>
+</main>
+</body>
+</html>

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Master-JEV Hook · Painel (mock A, Navy flight)</title>
+<style>
+/* Tokens: one :root block (dark, default); the light theme only redefines the same names. */
+:root {
+  color-scheme: dark;
+  --color-plane: #1E2A47;
+  --color-surface: #26334F;
+  --color-text: #E9EEF8;
+  --color-text-muted: #AEB9D0;
+  --color-line: #9AD9E6;
+  --color-focus: #2BB8AE;
+  --color-live: #F2715F;
+  --color-teal-text: #2BB8AE;
+  --color-answered: #2BB8AE;
+  --color-partial: #7EE8DC;
+  --color-abstain: #9AD9E6;
+  --color-failed: #E9EEF8;
+  --color-skipped: #7A87A3;
+  --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-display: 2rem;
+  --font-weight-regular: 400;
+  --font-weight-strong: 600;
+  --line-height-body: 1.5;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --radius-md: 0.75rem;
+  --radius-pill: 999px;
+  --line-width: 1px;
+  --line-width-strong: 3px;
+  --focus-width: 3px;
+  --size-target: 2.75rem;
+  --size-mark: 3.5rem;
+  --size-company: 2rem;
+  --size-bar: 0.375rem;
+  --size-chart: 10rem;
+  --size-label: 7.5rem;
+  --content-max: 75rem;
+  --duration-pulse: 2.4s;
+}
+[data-theme="light"] {
+  color-scheme: light;
+  --color-plane: #F4F8FA;
+  --color-surface: #FFFFFF;
+  --color-text: #1E2A47;
+  --color-text-muted: #4A5874;
+  --color-line: #4E7A99;
+  --color-focus: #1F8F87;
+  --color-live: #D4503D;
+  --color-teal-text: #1A7A73;
+  --color-answered: #1F8F87;
+  --color-partial: #36A097;
+  --color-abstain: #4E7A99;
+  --color-failed: #1E2A47;
+  --color-skipped: #7A87A3;
+}
+
+/* Base */
+body { margin: 0; background: var(--color-plane); color: var(--color-text); font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-body); }
+h1, h2, h3, h4, p, dl, dd, ul, ol { margin: 0; padding: 0; }
+ul, ol { list-style: none; }
+button, select { font: inherit; color: inherit; min-height: var(--size-target); }
+:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--space-xs); }
+.visually-hidden { position: absolute; width: var(--line-width); height: var(--line-width); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Masthead */
+.masthead { max-width: var(--content-max); margin: 0 auto; padding: var(--space-lg) var(--space-md) 0; display: grid; gap: var(--space-lg); }
+.masthead__brand { display: flex; align-items: center; gap: var(--space-md); }
+.masthead__mark, .masthead__icon { width: var(--size-mark); height: var(--size-mark); flex: none; display: block; }
+.masthead__mark-svg { width: 100%; height: 100%; display: block; }
+.masthead__titles { display: grid; gap: var(--space-xs); }
+.masthead__name { font-size: var(--font-size-xl); font-weight: var(--font-weight-strong); }
+.masthead__company { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.masthead__company-mark { width: var(--size-company); height: var(--size-company); }
+.masthead__tagline { font-style: italic; }
+[data-theme="light"] .masthead__mark { display: none; }
+.masthead__icon { display: none; }
+[data-theme="light"] .masthead__icon { display: block; }
+.masthead__bar { display: grid; gap: var(--space-md); }
+.masthead__meta { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-sm) var(--space-lg); font-size: var(--font-size-sm); }
+.masthead__meta dt { color: var(--color-text-muted); }
+.masthead__meta dd { font-weight: var(--font-weight-strong); }
+.masthead__controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm); }
+
+.status { display: inline-flex; align-items: center; gap: var(--space-sm); min-height: var(--size-target); padding: 0 var(--space-md); border-radius: var(--radius-pill); border: var(--line-width) solid var(--color-line); font-weight: var(--font-weight-strong); }
+.status__dot { width: var(--size-bar); height: var(--size-bar); border-radius: 50%; background: var(--color-live); }
+.status--online .status__dot { animation: live-pulse var(--duration-pulse) ease-in-out infinite; }
+@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+.control { display: inline-flex; align-items: center; gap: var(--space-sm); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.control__select, .theme-toggle, .chip, .requests__more, .compare__summary { background: var(--color-surface); color: var(--color-text); border: var(--line-width) solid var(--color-line); border-radius: var(--radius-pill); padding: 0 var(--space-md); }
+.theme-toggle { cursor: pointer; }
+.theme-toggle[aria-pressed="true"] { background: var(--color-text); color: var(--color-plane); }
+
+/* Sections and shared surface */
+.board { max-width: var(--content-max); margin: 0 auto; padding: var(--space-lg) var(--space-md) var(--space-2xl); display: grid; gap: var(--space-xl); }
+.section { background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-lg); display: grid; gap: var(--space-lg); align-content: start; }
+.section__title { font-size: var(--font-size-lg); font-weight: var(--font-weight-strong); }
+.section__lede { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+
+/* Tiles */
+.tiles { display: grid; grid-template-columns: 1fr; gap: var(--space-md); }
+.tile { background: var(--color-surface); border-top: var(--line-width-strong) solid var(--tile-accent, var(--color-line)); border-radius: var(--radius-md); padding: var(--space-md) var(--space-lg); display: grid; gap: var(--space-xs); align-content: start; }
+.tile__label { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.tile__value { font-size: var(--font-size-display); font-weight: var(--font-weight-strong); line-height: var(--line-height-body); }
+.tile__note { color: var(--color-text-muted); font-size: var(--font-size-sm); }
+.tile--answered { --tile-accent: var(--color-answered); }
+.tile--partial { --tile-accent: var(--color-partial); }
+.tile--abstain { --tile-accent: var(--color-abstain); }
+.tile--failed { --tile-accent: var(--color-failed); }
+.tile--skipped { --tile-accent: var(--color-skipped); }
+
+/* Charts: thin horizon bars built from flex segments (the flex-grow value is the count) */
+.charts { display: grid; gap: var(--space-xl); }
+.legend { display: flex; flex-wrap: wrap; gap: var(--space-sm) var(--space-lg); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.legend__item { display: inline-flex; align-items: center; gap: var(--space-xs); }
+.legend__swatch, .outcome__swatch { width: var(--size-bar); height: var(--size-bar); border-radius: 50%; background: var(--swatch, var(--color-line)); }
+.legend__swatch--answered, .outcome--answered, .hourly__segment--answered { --swatch: var(--color-answered); }
+.legend__swatch--partial, .outcome--partial, .hourly__segment--partial { --swatch: var(--color-partial); }
+.legend__swatch--abstain, .outcome--abstain, .hourly__segment--abstain { --swatch: var(--color-abstain); }
+.legend__swatch--failed, .outcome--failed, .hourly__segment--failed { --swatch: var(--color-failed); }
+.legend__swatch--skipped, .outcome--skipped, .hourly__segment--skipped { --swatch: var(--color-skipped); }
+.chart__plot { position: relative; height: var(--size-chart); }
+.hourly { display: grid; grid-template-columns: repeat(24, 1fr); gap: var(--space-xs); height: 100%; }
+.hourly__column { display: grid; grid-template-rows: 1fr auto; gap: var(--space-xs); min-width: 0; }
+.hourly__stack { display: flex; flex-direction: column; min-height: 0; }
+.hourly__segment { flex: 1 1 0; min-height: 0; width: var(--size-bar); justify-self: center; background: var(--swatch); }
+.hourly__segment--spacer { background: none; }
+.hourly__hour { font-size: var(--font-size-xs); color: var(--color-text-muted); text-align: center; }
+.histogram { display: grid; grid-template-columns: repeat(10, 1fr); gap: var(--space-xs); height: 100%; align-items: end; position: relative; }
+.histogram__bin { display: grid; grid-template-rows: 1fr auto; justify-items: center; height: 100%; gap: var(--space-xs); }
+.histogram__bar { align-self: end; width: var(--size-bar); background: var(--color-line); border-radius: var(--size-bar); }
+.histogram__label { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.histogram__threshold { position: absolute; top: 0; bottom: 0; left: 65%; border-left: var(--line-width-strong) dashed var(--color-line); }
+.histogram__caption { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+
+/* Weights and thresholds */
+.weights__groups { display: grid; gap: var(--space-lg); }
+.weights__group { display: grid; gap: var(--space-sm); align-content: start; }
+.weights__heading { font-size: var(--font-size-md); font-weight: var(--font-weight-strong); }
+.weights__row { display: grid; grid-template-columns: 1fr auto; gap: var(--space-xs) var(--space-md); align-items: center; font-size: var(--font-size-sm); }
+.weights__bar { grid-column: 1 / -1; height: var(--size-bar); border-radius: var(--size-bar); background: var(--color-plane); overflow: hidden; }
+.weights__fill { display: block; height: 100%; background: var(--color-answered); }
+.weights__fill--pale { background: var(--color-partial); }
+.weights__value { font-weight: var(--font-weight-strong); font-variant-numeric: tabular-nums; }
+.weights__note { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.weights__stack { display: flex; height: var(--size-bar); border-radius: var(--size-bar); overflow: hidden; }
+.weights__stack span:nth-child(1) { background: var(--color-answered); flex: 62 0 0; }
+.weights__stack span:nth-child(2) { background: var(--color-partial); flex: 30 0 0; }
+.weights__stack span:nth-child(3) { background: var(--color-abstain); flex: 8 0 0; }
+.weights__text { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.weights__ok { color: var(--color-teal-text); font-weight: var(--font-weight-strong); }
+
+/* Request list */
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.chip { min-height: var(--size-target); font-size: var(--font-size-sm); cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--color-text); color: var(--color-plane); }
+.requests__table { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
+.requests__table th { text-align: left; color: var(--color-text-muted); font-weight: var(--font-weight-regular); padding: var(--space-sm); border-bottom: var(--line-width) solid var(--color-line); }
+.requests__table td { padding: var(--space-sm); vertical-align: top; border-bottom: var(--line-width) solid var(--color-plane); }
+.requests__time, .requests__numeric { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.requests__kind { display: block; color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.requests__path { font-family: var(--font-mono); font-size: var(--font-size-xs); word-break: break-all; }
+.requests__detail td { background: var(--color-plane); }
+.requests__details summary { cursor: pointer; font-weight: var(--font-weight-strong); min-height: var(--size-target); display: flex; align-items: center; }
+.requests__detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-sm) var(--space-lg); margin-top: var(--space-sm); }
+.requests__detail-grid dt { color: var(--color-text-muted); font-size: var(--font-size-xs); }
+.requests__question { margin-top: var(--space-md); display: grid; gap: var(--space-xs); }
+.requests__options { font-family: var(--font-mono); font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.outcome { display: inline-flex; align-items: center; gap: var(--space-xs); white-space: nowrap; }
+.outcome__swatch { display: inline-block; }
+.requests__more { margin-top: var(--space-md); justify-self: start; cursor: pointer; }
+
+/* Advanced compare table (collapsed by default) */
+.compare { background: var(--color-surface); border-radius: var(--radius-md); padding: var(--space-lg); }
+.compare__summary { display: inline-flex; align-items: center; cursor: pointer; min-height: var(--size-target); }
+.compare[open] .compare__summary { margin-bottom: var(--space-md); }
+.compare__table { width: 100%; border-collapse: collapse; font-size: var(--font-size-sm); margin-top: var(--space-md); }
+.compare__table th, .compare__table td { text-align: right; padding: var(--space-sm); border-bottom: var(--line-width) solid var(--color-plane); font-variant-numeric: tabular-nums; }
+.compare__table th:first-child, .compare__table td:first-child { text-align: left; }
+.footer { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+
+/* Responsive: mobile first (one column, 16 px gutters); literal widths because var() cannot be used in @media */
+@media (min-width: 480px) {
+  .masthead__meta { grid-template-columns: repeat(4, auto); }
+  .tiles { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 768px) {
+  .masthead { grid-template-columns: 1fr auto; align-items: start; }
+  .masthead__bar { justify-items: end; }
+  .tiles { grid-template-columns: repeat(3, 1fr); }
+  .charts { grid-template-columns: 2fr 1fr; }
+  .weights__groups { grid-template-columns: 1fr 1fr; }
+  .requests__table th, .requests__table td { padding: var(--space-md) var(--space-sm); }
+  .requests__table thead th { position: static; }
+}
+@media (max-width: 767px) {
+  .requests__table thead { position: absolute; width: var(--line-width); height: var(--line-width); overflow: hidden; clip-path: inset(50%); }
+  .requests__table tbody, .requests__table tr, .requests__table td { display: block; }
+  .requests__table tr { padding: var(--space-sm) 0; border-bottom: var(--line-width) solid var(--color-line); }
+  .requests__table td { display: grid; grid-template-columns: var(--size-label) minmax(0, 1fr); gap: var(--space-xs) var(--space-sm); border: 0; padding: var(--space-xs) 0; }
+  .requests__table td::before { content: attr(data-label); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+  .requests__detail td { display: block; }
+  .requests__detail td::before { content: none; }
+  .requests__detail-grid { grid-template-columns: 1fr; }
+  .compare__table th, .compare__table td { padding: var(--space-xs); font-size: var(--font-size-xs); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .status--online .status__dot { animation: none; }
+}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="masthead__brand">
+    <span class="masthead__mark" aria-hidden="true">
+      <svg class="masthead__mark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" focusable="false">
+        <g transform="translate(64 64) scale(0.875)">
+          <g fill="none" stroke="#9AD9E6" stroke-width="22" stroke-linecap="round" stroke-dasharray="0.1 56">
+            <path d="M512 215 C470 360 330 520 268 730"/>
+            <path d="M512 215 C554 360 694 520 756 730"/>
+          </g>
+          <path d="M490 212 C482 330 518 470 500 600 C492 660 486 720 494 776 L530 776 C522 720 528 660 536 600 C554 470 518 330 534 212 Z" fill="#2BB8AE"/>
+          <circle cx="512" cy="200" r="46" fill="#7EE8DC"/>
+          <g fill="#9AD9E6"><circle cx="248" cy="800" r="40"/><circle cx="776" cy="800" r="40"/></g>
+          <circle cx="512" cy="820" r="56" fill="#F2715F"/>
+        </g>
+      </svg>
+    </span>
+    <img class="masthead__icon" src="assets/master-jev-hook-icon.svg" alt="" width="56" height="56">
+    <div class="masthead__titles">
+      <h1 class="masthead__name">Master-JEV Hook</h1>
+      <p class="masthead__company">by KeepGlide <img class="masthead__company-mark" src="assets/keepglide-icon-256.png" alt="" width="32" height="32"> <span class="masthead__tagline">Complexo, sem atrito</span></p>
+    </div>
+  </div>
+  <div class="masthead__bar">
+    <p class="status status--online" role="status"><span class="status__dot" aria-hidden="true"></span>Online</p>
+    <dl class="masthead__meta">
+      <div><dt>Modelo</dt><dd>jev-1.13.0 via TypeSafe</dd></div>
+      <div><dt>Cliente</dt><dd>hook</dd></div>
+      <div><dt>No ar</dt><dd>há 3 h 12 min</dd></div>
+      <div><dt>Último pedido</dt><dd>há 4 s</dd></div>
+    </dl>
+    <div class="masthead__controls">
+      <label class="control">Cliente
+        <select class="control__select" data-testid="control-client"><option>hook</option></select>
+      </label>
+      <label class="control">Idioma
+        <select class="control__select" data-testid="control-language"><option>pt-BR</option><option>en</option></select>
+      </label>
+      <button type="button" class="theme-toggle" data-testid="theme-toggle" aria-pressed="false">Tema claro</button>
+    </div>
+  </div>
+</header>
+
+<main class="board">
+  <section class="section" aria-labelledby="tiles-title">
+    <h2 id="tiles-title" class="section__title">Últimas 24 horas</h2>
+    <ul class="tiles">
+      <li class="tile tile--received"><p class="tile__label">Pedidos recebidos</p><p class="tile__value">612</p><p class="tile__note">25,5 por hora</p></li>
+      <li class="tile tile--answered"><p class="tile__label">Respondidas</p><p class="tile__value">373</p><p class="tile__note">61 %</p></li>
+      <li class="tile tile--partial"><p class="tile__label">Parciais</p><p class="tile__value">55</p><p class="tile__note">9 %</p></li>
+      <li class="tile tile--abstain"><p class="tile__label">Sem decisão</p><p class="tile__value">147</p><p class="tile__note">24 %</p></li>
+      <li class="tile tile--failed"><p class="tile__label">Falhas</p><p class="tile__value">6</p><p class="tile__note">1 %</p></li>
+      <li class="tile tile--skipped"><p class="tile__label">Não enviadas ao JEV</p><p class="tile__value">31</p><p class="tile__note">5 %</p></li>
+      <li class="tile"><p class="tile__label">Confiança média</p><p class="tile__value">0,84</p><p class="tile__note">mín. 0,12</p></li>
+      <li class="tile"><p class="tile__label">Tempo de resposta</p><p class="tile__value">302 ms</p><p class="tile__note">p95 391 ms</p></li>
+      <li class="tile"><p class="tile__label">Tokens do JEV</p><p class="tile__value">858 k</p><p class="tile__note">822 k entrada · 36 k saída</p></li>
+    </ul>
+  </section>
+
+  <div class="charts">
+    <section class="section" aria-labelledby="hourly-title">
+      <h2 id="hourly-title" class="section__title">Pedidos por hora</h2>
+      <ul class="legend" aria-label="Legenda">
+        <li class="legend__item"><span class="legend__swatch legend__swatch--answered" aria-hidden="true"></span>Respondida</li>
+        <li class="legend__item"><span class="legend__swatch legend__swatch--partial" aria-hidden="true"></span>Parcial</li>
+        <li class="legend__item"><span class="legend__swatch legend__swatch--abstain" aria-hidden="true"></span>Sem decisão</li>
+        <li class="legend__item"><span class="legend__swatch legend__swatch--failed" aria-hidden="true"></span>Falha</li>
+        <li class="legend__item"><span class="legend__swatch legend__swatch--skipped" aria-hidden="true"></span>Não enviada</li>
+      </ul>
+      <div class="chart__plot" role="img" aria-label="Pedidos por hora nas últimas 24 horas, total 612. 02 h: 15; 03 h: 9; 04 h: 3; 05 h: 0; 06 h: 0; 07 h: 1; 08 h: 8; 09 h: 20; 10 h: 31; 11 h: 36; 12 h: 30; 13 h: 43; 14 h: 45; 15 h: 39; 16 h: 34; 17 h: 55; 18 h: 43; 19 h: 50; 20 h: 22; 21 h: 28; 22 h: 38; 23 h: 25; 00 h: 25; 01 h: 12.">
+        <ol class="hourly" aria-hidden="true">
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 40"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 4"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 9"></span></span><span class="hourly__hour">02</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 46"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 6"></span></span><span class="hourly__hour">03</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 52"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 2"></span></span><span class="hourly__hour">04</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 55"></span></span><span class="hourly__hour">05</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 55"></span></span><span class="hourly__hour">06</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 54"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 1"></span></span><span class="hourly__hour">07</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 47"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 4"></span></span><span class="hourly__hour">08</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 35"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 5"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 12"></span></span><span class="hourly__hour">09</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 24"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--failed" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 7"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 3"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 18"></span></span><span class="hourly__hour">10</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 19"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 9"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 3"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 22"></span></span><span class="hourly__hour">11</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 25"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 8"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 19"></span></span><span class="hourly__hour">12</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 12"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--failed" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 11"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 4"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 25"></span></span><span class="hourly__hour">13</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 10"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 10"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 5"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 28"></span></span><span class="hourly__hour">14</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 16"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--failed" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 9"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 4"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 24"></span></span><span class="hourly__hour">15</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 21"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 8"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 3"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 21"></span></span><span class="hourly__hour">16</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 3"></span><span class="hourly__segment hourly__segment--failed" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 14"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 5"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 32"></span></span><span class="hourly__hour">17</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 12"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 10"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 4"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 27"></span></span><span class="hourly__hour">18</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 5"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 3"></span><span class="hourly__segment hourly__segment--failed" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 12"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 4"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 30"></span></span><span class="hourly__hour">19</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 33"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 5"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 14"></span></span><span class="hourly__hour">20</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 27"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 7"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 17"></span></span><span class="hourly__hour">21</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 17"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--failed" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 9"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 3"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 23"></span></span><span class="hourly__hour">22</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 30"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 6"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 16"></span></span><span class="hourly__hour">23</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 30"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 6"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 3"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 15"></span></span><span class="hourly__hour">00</span></li>
+          <li class="hourly__column"><span class="hourly__stack"><span class="hourly__segment hourly__segment--spacer" style="flex-grow: 43"></span><span class="hourly__segment hourly__segment--skipped" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--abstain" style="flex-grow: 2"></span><span class="hourly__segment hourly__segment--partial" style="flex-grow: 1"></span><span class="hourly__segment hourly__segment--answered" style="flex-grow: 8"></span></span><span class="hourly__hour">01</span></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="histogram-title">
+      <h2 id="histogram-title" class="section__title">Confiança das respostas</h2>
+      <p class="histogram__caption">Confiança declarada, em faixas de 0,1. Linha tracejada: limiar 0,65.</p>
+      <div class="chart__plot" role="img" aria-label="Confiança declarada em 10 faixas: 0,0 a 0,1: 6; 0,1 a 0,2: 9; 0,2 a 0,3: 14; 0,3 a 0,4: 22; 0,4 a 0,5: 31; 0,5 a 0,6: 40; 0,6 a 0,7: 38; 0,7 a 0,8: 61; 0,8 a 0,9: 118; 0,9 a 1,0: 236. Limiar 0,65.">
+        <div class="histogram" aria-hidden="true">
+          <span class="histogram__bin" style="height: 100%"><span class="histogram__bar" style="height: 2.5%"></span><span class="histogram__label">0,0</span></span>
+          <span class="histogram__bin" style="height: 100%"><span class="histogram__bar" style="height: 3.8%"></span><span class="histogram__label">0,1</span></span>
+          <span class="histogram__bin" style="height: 100%"><span class="histogram__bar" style="height: 5.9%"></span><span class="histogram__label">0,2</span></span>
+          <span class="histogram__bin" style="height: 100%"><span class="histogram__bar" style="height: 9.3%"></span><span class="histogram__label">0,3</span></span>
+          <span class="histogram__bin" style="height: 100%"><span class="histogram__bar" style="height: 13.1%"></span><span class="histogram__label">0,4</span></span>
+          <span class="histogram__bin" style="height: 100%"><span class="histogram__bar" style="height: 16.9%"></span><span class="histogram__label">0,5</span></span>
+          <span class="histogram__bin" style="height: 100%"><span class="histogram__bar" style="height: 16.1%"></span><span class="histogram__label">0,6</span></span>
+          <span class="histogram__bin" style="height: 100%"><span class="histogram__bar" style="height: 25.8%"></span><span class="histogram__label">0,7</span></span>
+          <span class="histogram__bin" style="height: 100%"><span class="histogram__bar" style="height: 50%"></span><span class="histogram__label">0,8</span></span>
+          <span class="histogram__bin" style="height: 100%"><span class="histogram__bar" style="height: 100%"></span><span class="histogram__label">0,9</span></span>
+          <span class="histogram__threshold"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="section" aria-labelledby="weights-title">
+    <h2 id="weights-title" class="section__title">Pesos e limiares</h2>
+    <p class="section__lede">Informativo: nenhum controle altera o gateway.</p>
+    <div class="weights__groups">
+      <div class="weights__group">
+        <h3 class="weights__heading">Limiar por risco</h3>
+        <div class="weights__row"><span>baixo · limiar 0,65</span><span class="weights__value">70 % dos pedidos</span><span class="weights__bar"><span class="weights__fill" style="width: 70%"></span></span><span class="weights__text">aceitos 71 %</span></div>
+        <div class="weights__row"><span>médio · limiar 0,80</span><span class="weights__value">28 % dos pedidos</span><span class="weights__bar"><span class="weights__fill" style="width: 28%"></span></span><span class="weights__text">aceitos 67 %</span></div>
+        <div class="weights__row"><span>alto · limiar 0,90</span><span class="weights__value">2 % dos pedidos</span><span class="weights__bar"><span class="weights__fill" style="width: 2%"></span></span><span class="weights__text">aceitos 55 %</span></div>
+      </div>
+      <div class="weights__group">
+        <h3 class="weights__heading">Escalas de score: aprovação em 0,65</h3>
+        <div class="weights__row"><span>3 níveis · n = 792</span><span class="weights__value">94 %</span><span class="weights__bar"><span class="weights__fill" style="width: 94%"></span></span></div>
+        <div class="weights__row"><span>4 níveis · n = 83</span><span class="weights__value">37 %</span><span class="weights__bar"><span class="weights__fill" style="width: 37%"></span></span></div>
+        <div class="weights__row"><span>5 níveis · n = 735</span><span class="weights__value">15 %</span><span class="weights__bar"><span class="weights__fill" style="width: 15%"></span></span></div>
+        <p class="weights__note">Use 3 níveis descritos como situações; escalas de 5 níveis abstêm 85 % das vezes.</p>
+      </div>
+      <div class="weights__group">
+        <h3 class="weights__heading">Tipos de pergunta</h3>
+        <div class="weights__stack" aria-hidden="true"><span></span><span></span><span></span></div>
+        <p class="weights__text">Choice 62 % · Score 30 % · Noul 8 %</p>
+      </div>
+      <div class="weights__group">
+        <h3 class="weights__heading">Pesos do composto (jev_score · 13:03)</h3>
+        <div class="weights__row"><span>clareza 0,30</span><span class="weights__value">score 2,4</span><span class="weights__bar"><span class="weights__fill" style="width: 30%"></span></span><span class="weights__ok">ok</span></div>
+        <div class="weights__row"><span>completude 0,30</span><span class="weights__value">score 2,1</span><span class="weights__bar"><span class="weights__fill" style="width: 30%"></span></span><span class="weights__ok">ok</span></div>
+        <div class="weights__row"><span>segurança 0,40</span><span class="weights__value">score 3,6</span><span class="weights__bar"><span class="weights__fill" style="width: 40%"></span></span><span class="weights__ok">ok</span></div>
+        <p class="weights__note">Composto 0,62 (ok).</p>
+      </div>
+    </div>
+    <p class="weights__note">Uma Score abstida mantém o score esperado (provisório, ±1 nível); o ranking do jev_rank ordena todas, as abstidas em <code>abstained</code>.</p>
+  </section>
+
+  <section class="section requests" aria-labelledby="requests-title">
+    <h2 id="requests-title" class="section__title">Pedidos recebidos</h2>
+    <div class="chips" role="group" aria-label="Filtrar por resultado" data-testid="outcome-filter">
+      <button type="button" class="chip" aria-pressed="true">Todos</button>
+      <button type="button" class="chip" aria-pressed="false">Respondidas</button>
+      <button type="button" class="chip" aria-pressed="false">Parciais</button>
+      <button type="button" class="chip" aria-pressed="false">Sem decisão</button>
+      <button type="button" class="chip" aria-pressed="false">Falhas</button>
+      <button type="button" class="chip" aria-pressed="false">Não enviadas</button>
+    </div>
+    <table class="requests__table">
+      <caption class="visually-hidden">Os 8 pedidos mais recentes, do mais novo ao mais antigo</caption>
+      <thead><tr><th scope="col">Hora</th><th scope="col">Pedido</th><th scope="col">Pergunta</th><th scope="col">Resultado</th><th scope="col">Resposta do JEV</th><th scope="col">Confiança</th><th scope="col">Tempo</th><th scope="col">Tokens</th></tr></thead>
+      <tbody>
+        <tr><td class="requests__time" data-label="Hora">19:21:29</td><td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__path">/master/decide</code></td><td data-label="Pergunta">direction</td><td data-label="Resultado"><span class="outcome outcome--answered"><span class="outcome__swatch" aria-hidden="true"></span>Respondida</span></td><td data-label="Resposta do JEV">on_track</td><td class="requests__numeric" data-label="Confiança">0,91</td><td class="requests__numeric" data-label="Tempo">279 ms</td><td class="requests__numeric" data-label="Tokens">3 313</td></tr>
+        <tr><td class="requests__time" data-label="Hora">19:21:12</td><td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__path">/master/decide</code></td><td data-label="Pergunta">risk</td><td data-label="Resultado"><span class="outcome outcome--answered"><span class="outcome__swatch" aria-hidden="true"></span>Respondida</span></td><td data-label="Resposta do JEV">routine</td><td class="requests__numeric" data-label="Confiança">0,97</td><td class="requests__numeric" data-label="Tempo">270 ms</td><td class="requests__numeric" data-label="Tokens">1 029</td></tr>
+        <tr><td class="requests__time" data-label="Hora">19:20:53</td><td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__path">/master/decide</code></td><td data-label="Pergunta">completion</td><td data-label="Resultado"><span class="outcome outcome--abstain"><span class="outcome__swatch" aria-hidden="true"></span>Sem decisão</span></td><td data-label="Resposta do JEV">0,46 &lt; limiar 0,65</td><td class="requests__numeric" data-label="Confiança">0,46</td><td class="requests__numeric" data-label="Tempo">246 ms</td><td class="requests__numeric" data-label="Tokens">2 185</td></tr>
+        <tr class="requests__detail"><td colspan="8"><details class="requests__details" data-testid="request-detail" open><summary>Detalhes do pedido das 19:20:53</summary>
+          <dl class="requests__detail-grid"><div><dt>Cliente</dt><dd>hook</dd></div><div><dt>Modelo</dt><dd>jev-1.13.0</dd></div><div><dt>Limiar exigido</dt><dd>0,65 (risco baixo)</dd></div><div><dt>Chamadas</dt><dd>1</dd></div><div><dt>Tokens</dt><dd>2 185 entrada · 60 saída</dd></div><div><dt>Latência</dt><dd>246 ms</dd></div></dl>
+          <div class="requests__question"><h4>Pergunta completion (Choice)</h4><p class="requests__options">done_verified · done_unverified · not_done · needs_user · abstain</p><p>Resposta: abstain, confiança 0,46 abaixo do limiar 0,65.</p></div>
+        </details></td></tr>
+        <tr><td class="requests__time" data-label="Hora">19:20:40</td><td data-label="Pedido"><span class="requests__kind">Contexto</span><code class="requests__path">/master/context</code></td><td data-label="Pergunta">selection</td><td data-label="Resultado"><span class="outcome outcome--answered"><span class="outcome__swatch" aria-hidden="true"></span>Respondida</span></td><td data-label="Resposta do JEV">keep_score</td><td class="requests__numeric" data-label="Confiança">0,97</td><td class="requests__numeric" data-label="Tempo">328 ms</td><td class="requests__numeric" data-label="Tokens">1 285</td></tr>
+        <tr><td class="requests__time" data-label="Hora">19:20:35</td><td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__path">/master/decide</code></td><td data-label="Pergunta">A_per_run_cap … F_reduce_baseline (6)</td><td data-label="Resultado"><span class="outcome outcome--partial"><span class="outcome__swatch" aria-hidden="true"></span>Parcial</span></td><td data-label="Resposta do JEV">4 de 6 respondidas</td><td class="requests__numeric" data-label="Confiança">0,58</td><td class="requests__numeric" data-label="Tempo">313 ms</td><td class="requests__numeric" data-label="Tokens">1 328</td></tr>
+        <tr><td class="requests__time" data-label="Hora">19:19:58</td><td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__path">/master/decide</code></td><td data-label="Pergunta">verification</td><td data-label="Resultado"><span class="outcome outcome--answered"><span class="outcome__swatch" aria-hidden="true"></span>Respondida</span></td><td data-label="Resposta do JEV">sim 0,94</td><td class="requests__numeric" data-label="Confiança">—</td><td class="requests__numeric" data-label="Tempo">301 ms</td><td class="requests__numeric" data-label="Tokens">671</td></tr>
+        <tr><td class="requests__time" data-label="Hora">19:18:44</td><td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__path">/master/decide</code></td><td data-label="Pergunta">risk</td><td data-label="Resultado"><span class="outcome outcome--failed"><span class="outcome__swatch" aria-hidden="true"></span>Falha</span></td><td data-label="Resposta do JEV">tempo esgotado (8 s)</td><td class="requests__numeric" data-label="Confiança">—</td><td class="requests__numeric" data-label="Tempo">8 000 ms</td><td class="requests__numeric" data-label="Tokens">0</td></tr>
+        <tr><td class="requests__time" data-label="Hora">19:17:02</td><td data-label="Pedido"><span class="requests__kind">Escolha de ferramenta</span><code class="requests__path">/v1/chat/completions</code></td><td data-label="Pergunta">—</td><td data-label="Resultado"><span class="outcome outcome--skipped"><span class="outcome__swatch" aria-hidden="true"></span>Não enviada</span></td><td data-label="Resposta do JEV">pedido sem ferramentas</td><td class="requests__numeric" data-label="Confiança">—</td><td class="requests__numeric" data-label="Tempo">0 ms</td><td class="requests__numeric" data-label="Tokens">0</td></tr>
+      </tbody>
+    </table>
+    <button type="button" class="requests__more" data-testid="requests-show-more">Mostrar mais 30</button>
+  </section>
+
+  <details class="compare" data-testid="compare-advanced">
+    <summary class="compare__summary">Avançado</summary>
+    <h3 class="section__title">Tokens do LLM: com JEV × JEV pausado</h3>
+    <table class="compare__table">
+      <caption class="visually-hidden">Comparação de tokens e tempo por pedido, com JEV e com JEV pausado</caption>
+      <thead><tr><th scope="col">Métrica</th><th scope="col">Com JEV</th><th scope="col">JEV pausado</th><th scope="col">Diferença</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Pedidos ao LLM medidos</th><td>184</td><td>92</td><td>—</td></tr>
+        <tr><th scope="row">Tokens de entrada / pedido</th><td>11 240</td><td>13 980</td><td>−19,6 %</td></tr>
+        <tr><th scope="row">…em cache</th><td>9 870</td><td>11 120</td><td>−11,2 %</td></tr>
+        <tr><th scope="row">Tokens de saída / pedido</th><td>612</td><td>741</td><td>−17,4 %</td></tr>
+        <tr><th scope="row">…de raciocínio</th><td>188</td><td>240</td><td>−21,7 %</td></tr>
+        <tr><th scope="row">Segundos / pedido</th><td>6,8</td><td>8,1</td><td>−16,0 %</td></tr>
+        <tr><th scope="row">Total de tokens de entrada</th><td>2,07 M</td><td>1,29 M</td><td>—</td></tr>
+        <tr><th scope="row">Total de tokens de saída</th><td>113 k</td><td>68 k</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </details>
+
+  <p class="footer">Mock estático com dados de exemplo (últimas 24 horas). Somente leitura.</p>
+</main>
+
+<script>
+(function () {
+  var root = document.documentElement;
+  var toggle = document.querySelector('.theme-toggle');
+  toggle.addEventListener('click', function () {
+    var light = root.getAttribute('data-theme') !== 'light';
+    root.setAttribute('data-theme', light ? 'light' : 'dark');
+    toggle.setAttribute('aria-pressed', String(light));
+  });
+})();
+</script>
+</body>
+</html>

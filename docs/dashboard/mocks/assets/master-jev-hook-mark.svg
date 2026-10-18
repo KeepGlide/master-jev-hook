@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title">
+  <title id="title">Master-JEV Hook mark: one question, three candidate paths, the chosen one glides down to the Coral point; transparent background</title>
+  <!-- the fork: a Teal light origin point at the top (the question), two Sky dotted paths to the candidates
+       left out, one solid Teal glide that bends on its way to the candidate picked, the Coral point -->
+  <g id="mark">
+    <g id="paths-left-out" fill="none" stroke="#9AD9E6" stroke-width="28" stroke-linecap="round" stroke-dasharray="0.1 68">
+      <path d="M512 190 C470 350 300 520 212 760"/>
+      <path d="M512 190 C554 350 724 520 812 760"/>
+    </g>
+    <path id="path-picked" d="M512 190 C430 380 600 560 512 770" fill="none" stroke="#2BB8AE" stroke-width="50" stroke-linecap="round"/>
+    <circle id="origin" cx="512" cy="176" r="60" fill="#7EE8DC"/>
+    <g id="candidates-left-out" fill="#9AD9E6">
+      <circle cx="196" cy="806" r="54"/>
+      <circle cx="828" cy="806" r="54"/>
+    </g>
+    <circle id="candidate-picked" cx="512" cy="826" r="86" fill="#F2715F"/>
+  </g>
+</svg>

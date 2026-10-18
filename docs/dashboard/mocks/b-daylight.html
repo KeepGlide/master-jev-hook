@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Master-JEV Hook · painel (mock B, Daylight)</title>
+<style>
+:root {
+  color-scheme: light;
+  --color-plane: #E8F6F9;
+  --color-surface: #FFFFFF;
+  --color-text: #1E2A47;
+  --color-text-muted: #4B5873;
+  --color-line: #9AD9E6;
+  --color-navy: #1E2A47;
+  --color-teal: #2BB8AE;
+  --color-teal-light: #7EE8DC;
+  --color-sky: #9AD9E6;
+  --color-coral: #F2715F;
+  --color-skipped: #9A9FAC;
+  --color-on-skipped: #1E2A47;
+  --color-failed: #1E2A47;
+  --color-on-failed: #FFFFFF;
+  --color-on-fill: #1E2A47;
+  --color-focus: #2BB8AE;
+  --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2rem;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+  --line-height-body: 1.5;
+  --line-height-heading: 1.2;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --radius-card: 1rem;
+  --radius-control: 0.5rem;
+  --radius-pill: 999px;
+  --focus-width: 3px;
+  --size-hairline: 1px;
+  --size-rule: 2px;
+  --size-icon: 4.5rem;
+  --size-icon-mobile: 3.5rem;
+  --size-company: 1.75rem;
+  --size-dot: 0.625rem;
+  --size-swatch: 0.75rem;
+  --size-meter: 0.5rem;
+  --size-stack: 1.25rem;
+  --size-label-column: 6.5rem;
+  --chart-height: 12rem;
+  --page-max: 75rem;
+  --motion-pulse: 2s;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-plane: #1E2A47;
+  --color-surface: #26334F;
+  --color-text: #E9EEF8;
+  --color-text-muted: #B8C4DA;
+  --color-line: #3A4A6B;
+  --color-skipped: #4A5672;
+  --color-on-skipped: #E9EEF8;
+  --color-failed: #E9EEF8;
+  --color-on-failed: #1E2A47;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--color-plane); color: var(--color-text); font-family: var(--font-body); font-size: var(--font-size-md); line-height: var(--line-height-body); }
+h1, h2, h3, p, dl, dd, dt, ol, ul, figure { margin: 0; }
+ol, ul { padding: 0; list-style: none; }
+button, select { font: inherit; color: inherit; }
+code { font-family: var(--font-mono); }
+:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--space-xs); }
+.visually-hidden { position: absolute; inline-size: var(--size-hairline); block-size: var(--size-hairline); overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Outcome states: one modifier sets the fill and text pair, every part reads it */
+.tile--answered, .bar__segment--answered, .legend__swatch--answered, .outcome--answered { --outcome-fill: var(--color-teal); --outcome-text: var(--color-on-fill); }
+.tile--partial, .bar__segment--partial, .legend__swatch--partial, .outcome--partial { --outcome-fill: var(--color-teal-light); --outcome-text: var(--color-on-fill); }
+.tile--abstain, .bar__segment--abstain, .legend__swatch--abstain, .outcome--abstain { --outcome-fill: var(--color-sky); --outcome-text: var(--color-on-fill); }
+.tile--failed, .bar__segment--failed, .legend__swatch--failed, .outcome--failed { --outcome-fill: var(--color-failed); --outcome-text: var(--color-on-failed); }
+.tile--skipped, .bar__segment--skipped, .legend__swatch--skipped, .outcome--skipped { --outcome-fill: var(--color-skipped); --outcome-text: var(--color-on-skipped); }
+.bar__segment, .legend__swatch, .tile__swatch { background: var(--outcome-fill); }
+.outcome { display: inline-block; padding: 0 var(--space-sm); border-radius: var(--radius-pill); background: var(--outcome-fill); color: var(--outcome-text); font-size: var(--font-size-xs); font-weight: var(--font-weight-bold); white-space: nowrap; }
+
+.page { display: grid; gap: var(--space-lg); max-inline-size: var(--page-max); margin-inline: auto; padding: var(--space-md); }
+.section-title { font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); line-height: var(--line-height-heading); }
+.card { display: grid; align-content: start; gap: var(--space-md); min-inline-size: 0; padding: var(--space-md); background: var(--color-surface); border: var(--size-hairline) solid var(--color-line); border-radius: var(--radius-card); }
+.card__lede { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.button, .filter-chip, .theme-toggle { padding: var(--space-xs) var(--space-md); border: var(--size-hairline) solid var(--color-text-muted); border-radius: var(--radius-pill); background: var(--color-surface); color: var(--color-text); font-size: var(--font-size-sm); cursor: pointer; }
+.filter-chips { display: flex; flex-wrap: wrap; gap: var(--space-sm); }
+.filter-chip--active { background: var(--color-teal-light); border-color: var(--color-teal-light); color: var(--color-on-fill); font-weight: var(--font-weight-bold); }
+.button { justify-self: start; }
+
+/* Masthead */
+.masthead { display: grid; gap: var(--space-md); padding: var(--space-md); background: var(--color-surface); border: var(--size-hairline) solid var(--color-line); border-radius: var(--radius-card); }
+.masthead__brand { display: flex; align-items: center; gap: var(--space-md); }
+.masthead__icon { inline-size: var(--size-icon-mobile); block-size: var(--size-icon-mobile); flex: none; }
+.masthead__icon--dark, [data-theme="dark"] .masthead__icon--light { display: none; }
+[data-theme="dark"] .masthead__icon--dark { display: block; }
+.masthead__title { font-size: var(--font-size-xl); line-height: var(--line-height-heading); font-weight: var(--font-weight-bold); }
+.masthead__by { display: flex; align-items: center; gap: var(--space-xs); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.masthead__company { inline-size: var(--size-company); block-size: var(--size-company); }
+.masthead__tagline { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.masthead__panel { display: grid; gap: var(--space-md); }
+.masthead__status { display: inline-flex; align-items: center; justify-self: start; gap: var(--space-sm); padding: var(--space-xs) var(--space-md); border-radius: var(--radius-pill); background: var(--color-plane); font-weight: var(--font-weight-bold); }
+.masthead__live { inline-size: var(--size-dot); block-size: var(--size-dot); border-radius: 50%; background: var(--color-coral); animation: masthead-pulse var(--motion-pulse) ease-in-out infinite; }
+@keyframes masthead-pulse { 50% { opacity: 0.4; } }
+.masthead__facts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-sm) var(--space-md); font-size: var(--font-size-sm); }
+.masthead__fact { display: grid; gap: var(--space-xs); }
+.masthead__fact dt { color: var(--color-text-muted); }
+.masthead__fact dd { font-weight: var(--font-weight-bold); }
+.view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-sm) var(--space-md); font-size: var(--font-size-sm); }
+.view-controls__field { display: flex; align-items: center; gap: var(--space-xs); }
+.view-controls__select { padding: var(--space-xs) var(--space-sm); border: var(--size-hairline) solid var(--color-text-muted); border-radius: var(--radius-control); background: var(--color-surface); }
+
+/* Tiles */
+.tiles { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-md); }
+.tile { display: grid; align-content: start; gap: var(--space-xs); min-inline-size: 0; padding: var(--space-md); background: var(--color-surface); border: var(--size-hairline) solid var(--color-line); border-radius: var(--radius-card); }
+.tile__label { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); color: var(--color-text-muted); }
+.tile__swatch { inline-size: var(--size-swatch); block-size: var(--size-swatch); border-radius: var(--radius-control); }
+.tile__value { font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); line-height: var(--line-height-heading); font-variant-numeric: tabular-nums; }
+.tile__note { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+
+/* Hourly bars and histogram share the same scale rule */
+.legend { display: flex; flex-wrap: wrap; gap: var(--space-sm) var(--space-md); font-size: var(--font-size-sm); }
+.legend__item { display: inline-flex; align-items: center; gap: var(--space-xs); }
+.legend__swatch { inline-size: var(--size-swatch); block-size: var(--size-swatch); border-radius: var(--radius-control); }
+.bars__plot { display: flex; gap: var(--space-xs); }
+.bars__hour { display: flex; flex-direction: column; flex: 1 1 0; min-inline-size: 0; }
+.bar__track { display: flex; flex-direction: column; justify-content: flex-end; block-size: var(--chart-height); }
+.bar__stack { display: flex; flex-direction: column-reverse; block-size: calc(var(--stack-total) / var(--scale-max) * var(--chart-height)); }
+.bar__segment { flex: var(--segment-value) 0 0; }
+.bars__label { margin-block-start: var(--space-xs); text-align: center; font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.bars__label--minor { display: none; }
+.histogram__frame { position: relative; }
+.histogram__plot { display: flex; gap: var(--space-xs); }
+.histogram__bin { display: flex; flex-direction: column; flex: 1 1 0; min-inline-size: 0; }
+.histogram__track { display: flex; flex-direction: column; justify-content: flex-end; block-size: var(--chart-height); }
+.histogram__bar { block-size: calc(var(--stack-total) / var(--scale-max) * var(--chart-height)); background: var(--color-teal); }
+.histogram__label { margin-block-start: var(--space-xs); text-align: center; font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.histogram__threshold { position: absolute; inset-block-start: 0; left: calc(var(--threshold) * 1%); block-size: var(--chart-height); border-inline-start: var(--size-rule) dashed var(--color-sky); }
+
+/* Weights and thresholds panel */
+.weights__grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-lg); }
+.weights__block { display: grid; align-content: start; gap: var(--space-sm); min-inline-size: 0; }
+.weights__heading { font-size: var(--font-size-md); font-weight: var(--font-weight-bold); }
+.weights__row { display: grid; gap: var(--space-xs); padding-block-end: var(--space-sm); border-block-end: var(--size-hairline) solid var(--color-line); }
+.weights__name { font-weight: var(--font-weight-medium); }
+.weights__meter { display: grid; gap: var(--space-xs); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.weights__track { display: block; block-size: var(--size-meter); background: var(--color-plane); border-radius: var(--radius-pill); overflow: hidden; }
+.weights__bar { display: block; block-size: 100%; inline-size: calc(var(--share) * 1%); background: var(--color-teal); }
+.weights__bar--accepted { background: var(--color-navy); }
+.weights__stack { display: flex; block-size: var(--size-stack); border-radius: var(--radius-pill); overflow: hidden; }
+.weights__segment { flex: var(--share) 0 0; }
+.weights__segment--choice { background: var(--color-teal); }
+.weights__segment--score { background: var(--color-sky); }
+.weights__segment--noul { background: var(--color-skipped); }
+.weights__legend { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-md); font-size: var(--font-size-sm); }
+.weights__status { display: flex; align-items: center; gap: var(--space-sm); font-size: var(--font-size-sm); }
+.weights__note { font-size: var(--font-size-sm); color: var(--color-text-muted); }
+
+/* Requests table, collapsing to stacked rows on phones */
+.data-table { inline-size: 100%; border-collapse: collapse; font-size: var(--font-size-sm); }
+.data-table th, .data-table td { padding: var(--space-sm); text-align: start; vertical-align: top; border-block-end: var(--size-hairline) solid var(--color-line); }
+.data-table th { font-weight: var(--font-weight-medium); color: var(--color-text-muted); }
+.data-table__num { text-align: end; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.data-table__mono { font-family: var(--font-mono); font-size: var(--font-size-xs); }
+.data-table__detail td { background: var(--color-plane); }
+.requests__toggle { display: block; margin-block-end: var(--space-xs); padding: 0; border: 0; background: none; font-size: var(--font-size-xs); text-decoration: underline; cursor: pointer; }
+.requests__kind { display: block; font-weight: var(--font-weight-medium); }
+.requests__detail-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-md); }
+.requests__facts { display: grid; gap: var(--space-xs); }
+.requests__fact { display: flex; justify-content: space-between; gap: var(--space-md); }
+.requests__fact dt { color: var(--color-text-muted); }
+.requests__options { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-block-start: var(--space-xs); }
+.requests__options li { padding: 0 var(--space-xs); border: var(--size-hairline) solid var(--color-text-muted); border-radius: var(--radius-control); font-family: var(--font-mono); font-size: var(--font-size-xs); }
+.advanced__summary { padding: var(--space-xs) 0; font-weight: var(--font-weight-bold); cursor: pointer; }
+.advanced[open] .advanced__summary { margin-block-end: var(--space-md); }
+
+@media (min-width: 480px) {
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .masthead__facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 768px) {
+  .page { padding: var(--space-xl); }
+  .card, .masthead { padding: var(--space-lg); }
+  .masthead { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; }
+  .masthead__icon { inline-size: var(--size-icon); block-size: var(--size-icon); }
+  .masthead__panel { justify-items: end; }
+  .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .charts { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--space-lg); }
+  .bars__label--minor { display: block; }
+  .weights__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .requests__detail-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+}
+@media (max-width: 767px) {
+  .data-table__head { position: absolute; inline-size: var(--size-hairline); block-size: var(--size-hairline); overflow: hidden; clip-path: inset(50%); }
+  .data-table, .data-table tbody, .data-table tr, .data-table td { display: block; }
+  .data-table tr { padding-block: var(--space-sm); border-block-end: var(--size-hairline) solid var(--color-line); }
+  .data-table td { border: 0; padding: var(--space-xs) 0; }
+  .data-table td[data-label] { display: grid; grid-template-columns: var(--size-label-column) minmax(0, 1fr); gap: var(--space-sm); }
+  .data-table td[data-label]::before { content: attr(data-label); color: var(--color-text-muted); font-size: var(--font-size-xs); }
+  .data-table__name { font-weight: var(--font-weight-bold); }
+  .data-table__num { text-align: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .masthead__live { animation: none; }
+}
+</style>
+</head>
+<body>
+<main class="page" data-testid="dashboard">
+
+<header class="masthead" data-testid="masthead">
+  <div class="masthead__brand">
+    <svg class="masthead__icon masthead__icon--light" viewBox="0 0 1024 1024" aria-hidden="true" focusable="false">
+      <rect width="1024" height="1024" rx="230" fill="#1E2A47"/>
+      <g transform="translate(64 64) scale(0.875)">
+        <g fill="none" stroke="#9AD9E6" stroke-width="22" stroke-linecap="round" stroke-dasharray="0.1 56">
+          <path d="M512 215 C470 360 330 520 268 730"/>
+          <path d="M512 215 C554 360 694 520 756 730"/>
+        </g>
+        <path d="M490 212 C482 330 518 470 500 600 C492 660 486 720 494 776 L530 776 C522 720 528 660 536 600 C554 470 518 330 534 212 Z" fill="#2BB8AE"/>
+        <circle cx="512" cy="200" r="46" fill="#7EE8DC"/>
+        <g fill="#9AD9E6">
+          <circle cx="248" cy="800" r="40"/>
+          <circle cx="776" cy="800" r="40"/>
+        </g>
+        <circle cx="512" cy="820" r="56" fill="#F2715F"/>
+      </g>
+    </svg>
+    <img class="masthead__icon masthead__icon--dark" src="assets/master-jev-hook-mark.svg" alt="" width="72" height="72">
+    <div>
+      <h1 class="masthead__title">Master-JEV Hook</h1>
+      <p class="masthead__by">by <img class="masthead__company" src="assets/keepglide-icon-256.png" alt="" width="28" height="28"> KeepGlide</p>
+      <p class="masthead__tagline">Complexo, sem atrito</p>
+    </div>
+  </div>
+
+  <div class="masthead__panel">
+    <p class="masthead__status" aria-live="polite" data-testid="status-pill"><span class="masthead__live" aria-hidden="true"></span>Online</p>
+    <dl class="masthead__facts">
+      <div class="masthead__fact"><dt>Modelo</dt><dd>jev-1.13.0 via TypeSafe</dd></div>
+      <div class="masthead__fact"><dt>Cliente</dt><dd>hook</dd></div>
+      <div class="masthead__fact"><dt>No ar</dt><dd>há 3 h 12 min</dd></div>
+      <div class="masthead__fact"><dt>Último pedido</dt><dd>há 4 s</dd></div>
+    </dl>
+    <div class="view-controls" role="group" aria-label="Controles de visualização">
+      <label class="view-controls__field">Cliente <select class="view-controls__select" data-testid="filter-client"><option>Todos</option><option>hook</option></select></label>
+      <label class="view-controls__field">Idioma <select class="view-controls__select" data-testid="filter-language"><option>Português (pt-BR)</option><option>English</option></select></label>
+      <button class="theme-toggle" type="button" aria-pressed="false" data-testid="theme-toggle">Tema escuro</button>
+    </div>
+  </div>
+</header>
+
+<section class="tiles-section" aria-labelledby="tiles-title" data-testid="tiles">
+  <h2 class="section-title" id="tiles-title">Resumo · últimas 24 horas</h2>
+  <div class="tiles">
+    <article class="tile"><h3 class="tile__label">Pedidos recebidos</h3><p class="tile__value">612</p><p class="tile__note">25,5 por hora</p></article>
+    <article class="tile tile--answered"><h3 class="tile__label"><span class="tile__swatch" aria-hidden="true"></span>Respondidas</h3><p class="tile__value">373</p><p class="tile__note">61 % dos pedidos</p></article>
+    <article class="tile tile--partial"><h3 class="tile__label"><span class="tile__swatch" aria-hidden="true"></span>Parciais</h3><p class="tile__value">55</p><p class="tile__note">9 % dos pedidos</p></article>
+    <article class="tile tile--abstain"><h3 class="tile__label"><span class="tile__swatch" aria-hidden="true"></span>Sem decisão</h3><p class="tile__value">147</p><p class="tile__note">24 % dos pedidos</p></article>
+    <article class="tile tile--failed"><h3 class="tile__label"><span class="tile__swatch" aria-hidden="true"></span>Falhas</h3><p class="tile__value">6</p><p class="tile__note">1 % dos pedidos</p></article>
+    <article class="tile tile--skipped"><h3 class="tile__label"><span class="tile__swatch" aria-hidden="true"></span>Não enviadas ao JEV</h3><p class="tile__value">31</p><p class="tile__note">5 % dos pedidos</p></article>
+    <article class="tile"><h3 class="tile__label">Confiança média</h3><p class="tile__value">0,84</p><p class="tile__note">mín. 0,12</p></article>
+    <article class="tile"><h3 class="tile__label">Tempo de resposta</h3><p class="tile__value">302 ms</p><p class="tile__note">p95 391 ms</p></article>
+    <article class="tile"><h3 class="tile__label">Tokens do JEV</h3><p class="tile__value">858 k</p><p class="tile__note">822 k entrada · 36 k saída</p></article>
+  </div>
+</section>
+
+<section class="card" aria-labelledby="weights-title" data-testid="weights-panel">
+  <h2 class="section-title" id="weights-title">Pesos e limiares</h2>
+  <p class="card__lede">Informativo: nenhum controle aqui altera o gateway.</p>
+  <div class="weights__grid">
+    <div class="weights__block">
+      <h3 class="weights__heading">Limiares por risco</h3>
+      <div class="weights__row"><p class="weights__name">Risco baixo · limiar 0,65</p>
+        <p class="weights__meter">Pedidos 70 %<span class="weights__track"><span class="weights__bar" style="--share: 70"></span></span></p>
+        <p class="weights__meter">Aceitos 71 %<span class="weights__track"><span class="weights__bar weights__bar--accepted" style="--share: 71"></span></span></p></div>
+      <div class="weights__row"><p class="weights__name">Risco médio · limiar 0,80</p>
+        <p class="weights__meter">Pedidos 28 %<span class="weights__track"><span class="weights__bar" style="--share: 28"></span></span></p>
+        <p class="weights__meter">Aceitos 67 %<span class="weights__track"><span class="weights__bar weights__bar--accepted" style="--share: 67"></span></span></p></div>
+      <div class="weights__row"><p class="weights__name">Risco alto · limiar 0,90</p>
+        <p class="weights__meter">Pedidos 2 %<span class="weights__track"><span class="weights__bar" style="--share: 2"></span></span></p>
+        <p class="weights__meter">Aceitos 55 %<span class="weights__track"><span class="weights__bar weights__bar--accepted" style="--share: 55"></span></span></p></div>
+    </div>
+    <div class="weights__block">
+      <h3 class="weights__heading">Escalas de score: passam em 0,65</h3>
+      <div class="weights__row"><p class="weights__name">3 níveis · 94 % · n = 792</p><span class="weights__track"><span class="weights__bar" style="--share: 94"></span></span></div>
+      <div class="weights__row"><p class="weights__name">4 níveis · 37 % · n = 83</p><span class="weights__track"><span class="weights__bar" style="--share: 37"></span></span></div>
+      <div class="weights__row"><p class="weights__name">5 níveis · 15 % · n = 735</p><span class="weights__track"><span class="weights__bar" style="--share: 15"></span></span></div>
+      <p class="weights__note">Use 3 níveis descritos como situações; escalas de 5 níveis abstêm 85 % das vezes.</p>
+    </div>
+    <div class="weights__block">
+      <h3 class="weights__heading">Tipos de pergunta</h3>
+      <div class="weights__stack" role="img" aria-label="Choice 62 %, Score 30 %, Noul 8 %">
+        <span class="weights__segment weights__segment--choice" style="--share: 62"></span>
+        <span class="weights__segment weights__segment--score" style="--share: 30"></span>
+        <span class="weights__segment weights__segment--noul" style="--share: 8"></span>
+      </div>
+      <ul class="weights__legend"><li>Choice 62 %</li><li>Score 30 %</li><li>Noul 8 %</li></ul>
+    </div>
+    <div class="weights__block">
+      <h3 class="weights__heading">Pesos do jev_score composto (13:03)</h3>
+      <div class="weights__row"><p class="weights__name">Clareza · peso 0,30 · nota 2,4</p><span class="weights__track"><span class="weights__bar" style="--share: 30"></span></span></div>
+      <div class="weights__row"><p class="weights__name">Completude · peso 0,30 · nota 2,1</p><span class="weights__track"><span class="weights__bar" style="--share: 30"></span></span></div>
+      <div class="weights__row"><p class="weights__name">Segurança · peso 0,40 · nota 3,6</p><span class="weights__track"><span class="weights__bar" style="--share: 40"></span></span></div>
+      <p class="weights__status">Composto <strong>0,62</strong> <span class="outcome outcome--answered">ok</span></p>
+    </div>
+  </div>
+  <p class="weights__note">Uma Score abstida mantém o score esperado (provisório, ±1 nível); o ranking do jev_rank ordena todas, as abstidas em <code>abstained</code>.</p>
+</section>
+
+<div class="charts">
+<section class="card" aria-labelledby="hourly-title" data-testid="hourly-chart">
+  <h2 class="section-title" id="hourly-title">Pedidos por hora</h2>
+  <p class="card__lede">Últimas 24 horas, empilhadas por resultado.</p>
+  <ul class="legend">
+    <li class="legend__item"><span class="legend__swatch legend__swatch--answered" aria-hidden="true"></span>Respondidas</li>
+    <li class="legend__item"><span class="legend__swatch legend__swatch--partial" aria-hidden="true"></span>Parciais</li>
+    <li class="legend__item"><span class="legend__swatch legend__swatch--abstain" aria-hidden="true"></span>Sem decisão</li>
+    <li class="legend__item"><span class="legend__swatch legend__swatch--failed" aria-hidden="true"></span>Falhas</li>
+    <li class="legend__item"><span class="legend__swatch legend__swatch--skipped" aria-hidden="true"></span>Não enviadas</li>
+  </ul>
+  <ol class="bars__plot" style="--scale-max: 55">
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 15"><span class="bar__segment bar__segment--answered" style="--segment-value: 9"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 1"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 4"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 1"></span></span></span><span class="bars__label bars__label--minor">02</span><span class="visually-hidden">02 h: 15 pedidos; 9 respondidas, 1 parcial, 4 sem decisão, 0 falhas, 1 não enviada</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 9"><span class="bar__segment bar__segment--answered" style="--segment-value: 6"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 1"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 2"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 0"></span></span></span><span class="bars__label bars__label--minor">03</span><span class="visually-hidden">03 h: 9 pedidos; 6 respondidas, 1 parcial, 2 sem decisão, 0 falhas, 0 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 3"><span class="bar__segment bar__segment--answered" style="--segment-value: 2"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 0"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 1"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 0"></span></span></span><span class="bars__label bars__label--minor">04</span><span class="visually-hidden">04 h: 3 pedidos; 2 respondidas, 0 parciais, 1 sem decisão, 0 falhas, 0 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 0"><span class="bar__segment bar__segment--answered" style="--segment-value: 0"></span></span></span><span class="bars__label bars__label--minor">05</span><span class="visually-hidden">05 h: 0 pedidos</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 0"><span class="bar__segment bar__segment--answered" style="--segment-value: 0"></span></span></span><span class="bars__label bars__label--minor">06</span><span class="visually-hidden">06 h: 0 pedidos</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 1"><span class="bar__segment bar__segment--answered" style="--segment-value: 1"></span></span></span><span class="bars__label bars__label--minor">07</span><span class="visually-hidden">07 h: 1 pedido; 1 respondida</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 8"><span class="bar__segment bar__segment--answered" style="--segment-value: 4"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 1"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 2"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 1"></span></span></span><span class="bars__label bars__label--minor">08</span><span class="visually-hidden">08 h: 8 pedidos; 4 respondidas, 1 parcial, 2 sem decisão, 0 falhas, 1 não enviada</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 20"><span class="bar__segment bar__segment--answered" style="--segment-value: 12"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 2"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 5"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 1"></span></span></span><span class="bars__label bars__label--minor">09</span><span class="visually-hidden">09 h: 20 pedidos; 12 respondidas, 2 parciais, 5 sem decisão, 0 falhas, 1 não enviada</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 31"><span class="bar__segment bar__segment--answered" style="--segment-value: 18"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 3"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 7"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 1"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 2"></span></span></span><span class="bars__label bars__label--minor">10</span><span class="visually-hidden">10 h: 31 pedidos; 18 respondidas, 3 parciais, 7 sem decisão, 1 falha, 2 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 36"><span class="bar__segment bar__segment--answered" style="--segment-value: 22"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 3"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 9"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 2"></span></span></span><span class="bars__label bars__label--minor">11</span><span class="visually-hidden">11 h: 36 pedidos; 22 respondidas, 3 parciais, 9 sem decisão, 0 falhas, 2 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 30"><span class="bar__segment bar__segment--answered" style="--segment-value: 19"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 2"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 8"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 1"></span></span></span><span class="bars__label">12</span><span class="visually-hidden">12 h: 30 pedidos; 19 respondidas, 2 parciais, 8 sem decisão, 0 falhas, 1 não enviada</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 43"><span class="bar__segment bar__segment--answered" style="--segment-value: 25"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 4"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 11"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 1"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 2"></span></span></span><span class="bars__label bars__label--minor">13</span><span class="visually-hidden">13 h: 43 pedidos; 25 respondidas, 4 parciais, 11 sem decisão, 1 falha, 2 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 45"><span class="bar__segment bar__segment--answered" style="--segment-value: 28"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 5"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 10"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 2"></span></span></span><span class="bars__label bars__label--minor">14</span><span class="visually-hidden">14 h: 45 pedidos; 28 respondidas, 5 parciais, 10 sem decisão, 0 falhas, 2 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 39"><span class="bar__segment bar__segment--answered" style="--segment-value: 24"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 4"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 9"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 1"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 1"></span></span></span><span class="bars__label bars__label--minor">15</span><span class="visually-hidden">15 h: 39 pedidos; 24 respondidas, 4 parciais, 9 sem decisão, 1 falha, 1 não enviada</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 34"><span class="bar__segment bar__segment--answered" style="--segment-value: 21"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 3"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 8"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 2"></span></span></span><span class="bars__label bars__label--minor">16</span><span class="visually-hidden">16 h: 34 pedidos; 21 respondidas, 3 parciais, 8 sem decisão, 0 falhas, 2 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 55"><span class="bar__segment bar__segment--answered" style="--segment-value: 32"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 5"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 14"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 1"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 3"></span></span></span><span class="bars__label bars__label--minor">17</span><span class="visually-hidden">17 h: 55 pedidos; 32 respondidas, 5 parciais, 14 sem decisão, 1 falha, 3 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 43"><span class="bar__segment bar__segment--answered" style="--segment-value: 27"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 4"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 10"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 2"></span></span></span><span class="bars__label bars__label--minor">18</span><span class="visually-hidden">18 h: 43 pedidos; 27 respondidas, 4 parciais, 10 sem decisão, 0 falhas, 2 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 50"><span class="bar__segment bar__segment--answered" style="--segment-value: 30"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 4"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 12"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 1"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 3"></span></span></span><span class="bars__label bars__label--minor">19</span><span class="visually-hidden">19 h: 50 pedidos; 30 respondidas, 4 parciais, 12 sem decisão, 1 falha, 3 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 22"><span class="bar__segment bar__segment--answered" style="--segment-value: 14"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 2"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 5"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 1"></span></span></span><span class="bars__label bars__label--minor">20</span><span class="visually-hidden">20 h: 22 pedidos; 14 respondidas, 2 parciais, 5 sem decisão, 0 falhas, 1 não enviada</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 28"><span class="bar__segment bar__segment--answered" style="--segment-value: 17"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 2"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 7"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 2"></span></span></span><span class="bars__label bars__label--minor">21</span><span class="visually-hidden">21 h: 28 pedidos; 17 respondidas, 2 parciais, 7 sem decisão, 0 falhas, 2 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 38"><span class="bar__segment bar__segment--answered" style="--segment-value: 23"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 3"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 9"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 1"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 2"></span></span></span><span class="bars__label bars__label--minor">22</span><span class="visually-hidden">22 h: 38 pedidos; 23 respondidas, 3 parciais, 9 sem decisão, 1 falha, 2 não enviadas</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 25"><span class="bar__segment bar__segment--answered" style="--segment-value: 16"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 2"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 6"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 1"></span></span></span><span class="bars__label bars__label--minor">23</span><span class="visually-hidden">23 h: 25 pedidos; 16 respondidas, 2 parciais, 6 sem decisão, 0 falhas, 1 não enviada</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 25"><span class="bar__segment bar__segment--answered" style="--segment-value: 15"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 3"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 6"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 1"></span></span></span><span class="bars__label">00</span><span class="visually-hidden">00 h: 25 pedidos; 15 respondidas, 3 parciais, 6 sem decisão, 0 falhas, 1 não enviada</span></li>
+    <li class="bars__hour"><span class="bar__track"><span class="bar__stack" style="--stack-total: 12"><span class="bar__segment bar__segment--answered" style="--segment-value: 8"></span><span class="bar__segment bar__segment--partial" style="--segment-value: 1"></span><span class="bar__segment bar__segment--abstain" style="--segment-value: 2"></span><span class="bar__segment bar__segment--failed" style="--segment-value: 0"></span><span class="bar__segment bar__segment--skipped" style="--segment-value: 1"></span></span></span><span class="bars__label bars__label--minor">01</span><span class="visually-hidden">01 h: 12 pedidos; 8 respondidas, 1 parcial, 2 sem decisão, 0 falhas, 1 não enviada</span></li>
+  </ol>
+</section>
+
+<section class="card" aria-labelledby="histogram-title" data-testid="histogram">
+  <h2 class="section-title" id="histogram-title">Confiança das respostas</h2>
+  <p class="card__lede">Confiança declarada, em faixas de 0,1. Linha tracejada: limiar 0,65.</p>
+  <div class="histogram__frame" style="--scale-max: 236; --threshold: 65">
+    <ol class="histogram__plot">
+      <li class="histogram__bin"><span class="histogram__track"><span class="histogram__bar" style="--stack-total: 6"></span></span><span class="histogram__label">0,0</span><span class="visually-hidden">0,0 a 0,1: 6 pedidos</span></li>
+      <li class="histogram__bin"><span class="histogram__track"><span class="histogram__bar" style="--stack-total: 9"></span></span><span class="histogram__label">0,1</span><span class="visually-hidden">0,1 a 0,2: 9 pedidos</span></li>
+      <li class="histogram__bin"><span class="histogram__track"><span class="histogram__bar" style="--stack-total: 14"></span></span><span class="histogram__label">0,2</span><span class="visually-hidden">0,2 a 0,3: 14 pedidos</span></li>
+      <li class="histogram__bin"><span class="histogram__track"><span class="histogram__bar" style="--stack-total: 22"></span></span><span class="histogram__label">0,3</span><span class="visually-hidden">0,3 a 0,4: 22 pedidos</span></li>
+      <li class="histogram__bin"><span class="histogram__track"><span class="histogram__bar" style="--stack-total: 31"></span></span><span class="histogram__label">0,4</span><span class="visually-hidden">0,4 a 0,5: 31 pedidos</span></li>
+      <li class="histogram__bin"><span class="histogram__track"><span class="histogram__bar" style="--stack-total: 40"></span></span><span class="histogram__label">0,5</span><span class="visually-hidden">0,5 a 0,6: 40 pedidos</span></li>
+      <li class="histogram__bin"><span class="histogram__track"><span class="histogram__bar" style="--stack-total: 38"></span></span><span class="histogram__label">0,6</span><span class="visually-hidden">0,6 a 0,7: 38 pedidos</span></li>
+      <li class="histogram__bin"><span class="histogram__track"><span class="histogram__bar" style="--stack-total: 61"></span></span><span class="histogram__label">0,7</span><span class="visually-hidden">0,7 a 0,8: 61 pedidos</span></li>
+      <li class="histogram__bin"><span class="histogram__track"><span class="histogram__bar" style="--stack-total: 118"></span></span><span class="histogram__label">0,8</span><span class="visually-hidden">0,8 a 0,9: 118 pedidos</span></li>
+      <li class="histogram__bin"><span class="histogram__track"><span class="histogram__bar" style="--stack-total: 236"></span></span><span class="histogram__label">0,9</span><span class="visually-hidden">0,9 a 1,0: 236 pedidos</span></li>
+    </ol>
+    <span class="histogram__threshold" aria-hidden="true"></span>
+  </div>
+</section>
+</div>
+
+<section class="card" aria-labelledby="requests-title" data-testid="requests">
+  <h2 class="section-title" id="requests-title">Pedidos recebidos</h2>
+  <p class="card__lede">Mais recentes primeiro. Filtro por resultado; a lista não altera o gateway.</p>
+  <div class="filter-chips" role="group" aria-label="Filtrar por resultado">
+    <button class="filter-chip filter-chip--active" type="button" aria-pressed="true" data-testid="filter-all">Todos (612)</button>
+    <button class="filter-chip" type="button" aria-pressed="false" data-testid="filter-answered">Respondidas (373)</button>
+    <button class="filter-chip" type="button" aria-pressed="false" data-testid="filter-partial">Parciais (55)</button>
+    <button class="filter-chip" type="button" aria-pressed="false" data-testid="filter-abstain">Sem decisão (147)</button>
+    <button class="filter-chip" type="button" aria-pressed="false" data-testid="filter-failed">Falhas (6)</button>
+    <button class="filter-chip" type="button" aria-pressed="false" data-testid="filter-skipped">Não enviadas (31)</button>
+  </div>
+  <table class="data-table requests__table">
+    <thead class="data-table__head">
+      <tr><th scope="col">Hora</th><th scope="col">Pedido</th><th scope="col">Pergunta</th><th scope="col">Resultado</th><th scope="col">Resposta do JEV</th><th scope="col">Confiança</th><th scope="col">Tempo</th><th scope="col">Tokens</th></tr>
+    </thead>
+    <tbody>
+      <tr data-testid="request-row">
+        <td data-label="Hora" class="data-table__mono">19:21:29</td>
+        <td data-label="Pedido"><button class="requests__toggle" type="button" aria-expanded="false" data-testid="request-toggle">Detalhes</button><span class="requests__kind">Decisão</span><code>/master/decide</code></td>
+        <td data-label="Pergunta"><code>direction</code></td>
+        <td data-label="Resultado"><span class="outcome outcome--answered">Respondida</span></td>
+        <td data-label="Resposta do JEV"><code>on_track</code></td>
+        <td data-label="Confiança" class="data-table__num">0,91</td>
+        <td data-label="Tempo" class="data-table__num">279 ms</td>
+        <td data-label="Tokens" class="data-table__num">3 313</td>
+      </tr>
+      <tr data-testid="request-row">
+        <td data-label="Hora" class="data-table__mono">19:21:12</td>
+        <td data-label="Pedido"><button class="requests__toggle" type="button" aria-expanded="false" data-testid="request-toggle">Detalhes</button><span class="requests__kind">Decisão</span><code>/master/decide</code></td>
+        <td data-label="Pergunta"><code>risk</code></td>
+        <td data-label="Resultado"><span class="outcome outcome--answered">Respondida</span></td>
+        <td data-label="Resposta do JEV"><code>routine</code></td>
+        <td data-label="Confiança" class="data-table__num">0,97</td>
+        <td data-label="Tempo" class="data-table__num">270 ms</td>
+        <td data-label="Tokens" class="data-table__num">1 029</td>
+      </tr>
+      <tr data-testid="request-row">
+        <td data-label="Hora" class="data-table__mono">19:20:53</td>
+        <td data-label="Pedido"><button class="requests__toggle" type="button" aria-expanded="true" aria-controls="detail-completion" data-testid="request-toggle">Detalhes</button><span class="requests__kind">Decisão</span><code>/master/decide</code></td>
+        <td data-label="Pergunta"><code>completion</code></td>
+        <td data-label="Resultado"><span class="outcome outcome--abstain">Sem decisão</span></td>
+        <td data-label="Resposta do JEV">0,46 &lt; limiar 0,65</td>
+        <td data-label="Confiança" class="data-table__num">0,46</td>
+        <td data-label="Tempo" class="data-table__num">246 ms</td>
+        <td data-label="Tokens" class="data-table__num">2 185</td>
+      </tr>
+      <tr class="data-table__detail" id="detail-completion">
+        <td colspan="8">
+          <div class="requests__detail-grid">
+            <dl class="requests__facts">
+              <div class="requests__fact"><dt>Cliente</dt><dd>hook</dd></div>
+              <div class="requests__fact"><dt>Modelo</dt><dd>jev-1.13.0</dd></div>
+              <div class="requests__fact"><dt>Limiar exigido</dt><dd>0,65</dd></div>
+              <div class="requests__fact"><dt>Chamadas</dt><dd>1</dd></div>
+              <div class="requests__fact"><dt>Tokens</dt><dd>2 185 entrada · 60 saída</dd></div>
+              <div class="requests__fact"><dt>Latência</dt><dd>246 ms</dd></div>
+            </dl>
+            <div>
+              <p><strong>Pergunta completion</strong> · tipo Choice · opções:</p>
+              <ul class="requests__options"><li>done_verified</li><li>done_unverified</li><li>not_done</li><li>needs_user</li><li>abstain</li></ul>
+              <p>Resposta: <code>abstain</code> · confiança 0,46 · abaixo do limiar 0,65</p>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr data-testid="request-row">
+        <td data-label="Hora" class="data-table__mono">19:19:58</td>
+        <td data-label="Pedido"><button class="requests__toggle" type="button" aria-expanded="false" data-testid="request-toggle">Detalhes</button><span class="requests__kind">Decisão</span><code>/master/decide</code></td>
+        <td data-label="Pergunta"><code>verification</code></td>
+        <td data-label="Resultado"><span class="outcome outcome--answered">Respondida</span></td>
+        <td data-label="Resposta do JEV">sim 0,94</td>
+        <td data-label="Confiança" class="data-table__num">—</td>
+        <td data-label="Tempo" class="data-table__num">301 ms</td>
+        <td data-label="Tokens" class="data-table__num">671</td>
+      </tr>
+      <tr data-testid="request-row">
+        <td data-label="Hora" class="data-table__mono">19:18:44</td>
+        <td data-label="Pedido"><button class="requests__toggle" type="button" aria-expanded="false" data-testid="request-toggle">Detalhes</button><span class="requests__kind">Decisão</span><code>/master/decide</code></td>
+        <td data-label="Pergunta"><code>risk</code></td>
+        <td data-label="Resultado"><span class="outcome outcome--failed">Falhou</span></td>
+        <td data-label="Resposta do JEV">tempo esgotado (8 s)</td>
+        <td data-label="Confiança" class="data-table__num">—</td>
+        <td data-label="Tempo" class="data-table__num">8 000 ms</td>
+        <td data-label="Tokens" class="data-table__num">0</td>
+      </tr>
+      <tr data-testid="request-row">
+        <td data-label="Hora" class="data-table__mono">19:17:02</td>
+        <td data-label="Pedido"><button class="requests__toggle" type="button" aria-expanded="false" data-testid="request-toggle">Detalhes</button><span class="requests__kind">Escolha de ferramenta</span><code>/v1/chat/completions</code></td>
+        <td data-label="Pergunta">—</td>
+        <td data-label="Resultado"><span class="outcome outcome--skipped">Não enviada</span></td>
+        <td data-label="Resposta do JEV">pedido sem ferramentas</td>
+        <td data-label="Confiança" class="data-table__num">—</td>
+        <td data-label="Tempo" class="data-table__num">0 ms</td>
+        <td data-label="Tokens" class="data-table__num">0</td>
+      </tr>
+    </tbody>
+  </table>
+  <button class="button" type="button" data-testid="show-more">Mostrar mais 30</button>
+</section>
+
+<section class="card" aria-label="Avançado" data-testid="advanced">
+  <details class="advanced">
+    <summary class="advanced__summary" data-testid="advanced-summary">Avançado</summary>
+    <table class="data-table compare__table">
+      <caption class="card__lede">Tokens do LLM: com JEV × JEV pausado</caption>
+      <thead class="data-table__head">
+        <tr><th scope="col">Métrica</th><th scope="col">Com JEV</th><th scope="col">JEV pausado</th><th scope="col">Diferença</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="data-table__name">Pedidos ao LLM medidos</td><td data-label="Com JEV" class="data-table__num">184</td><td data-label="JEV pausado" class="data-table__num">92</td><td data-label="Diferença" class="data-table__num">—</td></tr>
+        <tr><td class="data-table__name">Tokens de entrada / pedido</td><td data-label="Com JEV" class="data-table__num">11 240</td><td data-label="JEV pausado" class="data-table__num">13 980</td><td data-label="Diferença" class="data-table__num">−19,6 %</td></tr>
+        <tr><td class="data-table__name">…em cache</td><td data-label="Com JEV" class="data-table__num">9 870</td><td data-label="JEV pausado" class="data-table__num">11 120</td><td data-label="Diferença" class="data-table__num">−11,2 %</td></tr>
+        <tr><td class="data-table__name">Tokens de saída / pedido</td><td data-label="Com JEV" class="data-table__num">612</td><td data-label="JEV pausado" class="data-table__num">741</td><td data-label="Diferença" class="data-table__num">−17,4 %</td></tr>
+        <tr><td class="data-table__name">…de raciocínio</td><td data-label="Com JEV" class="data-table__num">188</td><td data-label="JEV pausado" class="data-table__num">240</td><td data-label="Diferença" class="data-table__num">−21,7 %</td></tr>
+        <tr><td class="data-table__name">Segundos / pedido</td><td data-label="Com JEV" class="data-table__num">6,8</td><td data-label="JEV pausado" class="data-table__num">8,1</td><td data-label="Diferença" class="data-table__num">−16,0 %</td></tr>
+        <tr><td class="data-table__name">Total de tokens de entrada</td><td data-label="Com JEV" class="data-table__num">2,07 M</td><td data-label="JEV pausado" class="data-table__num">1,29 M</td><td data-label="Diferença" class="data-table__num">—</td></tr>
+        <tr><td class="data-table__name">Total de tokens de saída</td><td data-label="Com JEV" class="data-table__num">113 k</td><td data-label="JEV pausado" class="data-table__num">68 k</td><td data-label="Diferença" class="data-table__num">—</td></tr>
+      </tbody>
+    </table>
+  </details>
+</section>
+
+</main>
+<script>
+  const root = document.documentElement;
+  const toggle = document.querySelector('[data-testid="theme-toggle"]');
+  toggle.addEventListener('click', () => {
+    const dark = root.getAttribute('data-theme') !== 'dark';
+    root.setAttribute('data-theme', dark ? 'dark' : 'light');
+    toggle.setAttribute('aria-pressed', String(dark));
+  });
+</script>
+</body>
+</html>
