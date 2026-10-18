@@ -175,7 +175,7 @@ button:focus-visible, summary:focus-visible, .table-scroll:focus-visible, .row-t
 .tile__value { font-size: var(--text-h3); font-weight: var(--weight-bold); line-height: 1.08; color: var(--heading); text-align: right; font-variant-numeric: tabular-nums; }
 /* Charts */
 .charts { display: grid; gap: var(--space-4); }
-.charts .card__desc { min-height: calc(2 * var(--line-body) * var(--text-xs)); }
+.charts .card__description { min-height: calc(2 * var(--line-body) * var(--text-xs)); }
 .share { display: flex; height: var(--space-3); overflow: hidden; border-radius: var(--radius-pill); background: var(--raised); }
 .share__segment { display: block; height: 100%; background: var(--tone); }
 .share__segment + .share__segment { border-left: var(--border-width) solid var(--surface); }
@@ -351,7 +351,7 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: var(--table-he
       <span class="chip-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#icon-bars"/></svg></span>
       <div><p class="kicker" data-i18n="hourlyKicker"></p><h2 class="card__title" id="hourly-title" data-i18n="hourlyTitle"></h2></div>
     </header>
-    <p class="note card__desc" id="hourly-note"></p>
+    <p class="note card__description" id="hourly-note"></p>
     <div class="share" id="share"></div>
     <div class="legend" id="legend"></div>
     <div class="bars" id="hourly"></div>
@@ -362,7 +362,7 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: var(--table-he
       <span class="chip-icon"><svg class="icon" aria-hidden="true" focusable="false"><use href="#icon-gauge"/></svg></span>
       <div><p class="kicker" data-i18n="confKicker"></p><h2 class="card__title" id="confidence-title" data-i18n="confTitle"></h2></div>
     </header>
-    <p class="note card__desc" id="confidence-note"></p>
+    <p class="note card__description" id="confidence-note"></p>
     <div class="legend" id="confidence-legend"></div>
     <div class="bars" id="confidence"></div>
     <div class="axis" id="confidence-axis"></div>
@@ -469,7 +469,7 @@ const STRINGS = {
     peakAt: (n, from, to) => `hora de pico: ${n} pedidos, das ${from} às ${to}`, ofTotal: (p) => `${p} do total`,
     tileReceivedSub: (rate, span) => `${rate} por hora (${span} de dados)`, tileReceivedNone: "sem pedidos ainda", tileCollectingSub: (n) => `coletando · últimos ${n} guardados`, keptNote: (n) => `últimos ${n} guardados`, tilePartialSub: (share) => `${share}% do total · respondida em parte; fora de Respondidas e Sem decisão`, tileFailedSub: "erro ou tempo esgotado", tileSkippedSub: "o gateway não consultou",
     tileConfSub: (min) => `das respondidas · menor ${min}`,
-    tileLatencySub: (p) => `média · 95% das respostas em até ${p}`, tileTokensSub: (i, o) => `${i} entrada · ${o} saída`,
+    tileLatencySub: (p) => `média · 95% das respostas em até ${p}`, tileTokensSub: (input, output) => `${input} entrada · ${output} saída`,
     hourlyKicker: "Últimas 24 h", hourlyTitle: "Pedidos por hora", hourlyNote: "Cada barra é uma hora das últimas 24; as cores mostram o resultado.",
     hourlyNoteKept: (time, kept) => `Cada barra é uma das últimas 24 horas. Barras vazias antes de ${time} não têm dados, e não são zero: só os últimos ${kept} pedidos são guardados.`,
     confKicker: "Confiança declarada", confTitle: "Grau de confiança das respostas",
@@ -568,7 +568,7 @@ const STRINGS = {
     peakAt: (n, from, to) => `busiest hour: ${n} requests, ${from}–${to}`, ofTotal: (p) => `${p} of total`,
     tileReceivedSub: (rate, span) => `${rate} per hour (${span} of data)`, tileReceivedNone: "no requests yet", tileCollectingSub: (n) => `collecting · last ${n} kept`, keptNote: (n) => `last ${n} kept`, tilePartialSub: (share) => `${share}% of total · part answered; not in Answered or No decision`, tileFailedSub: "error or timeout", tileSkippedSub: "the gateway didn't ask",
     tileConfSub: (min) => `of answered · lowest ${min}`,
-    tileLatencySub: (p) => `average · 95% of replies under ${p}`, tileTokensSub: (i, o) => `${i} in · ${o} out`,
+    tileLatencySub: (p) => `average · 95% of replies under ${p}`, tileTokensSub: (input, output) => `${input} in · ${output} out`,
     hourlyKicker: "Last 24 h", hourlyTitle: "Requests per hour", hourlyNote: "Each bar is one of the last 24 hours; colours show the outcome.",
     hourlyNoteKept: (time, kept) => `Each bar is one of the last 24 hours. Empty bars before ${time} are missing, not zero: only the last ${kept} requests are kept.`,
     confKicker: "Declared confidence", confTitle: "Confidence of the answers",
