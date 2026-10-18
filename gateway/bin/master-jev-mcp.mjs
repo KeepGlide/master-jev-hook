@@ -110,11 +110,14 @@ function rankResult(result, args) {
   if (!isPlainObject(result)) return result;
   const order = args.candidates.map((c) => c.id);
   const answers = isPlainObject(result.answers) ? result.answers : {};
-  const isOk = (id) => answers[id]?.status === "ok" && typeof answers[id].score === "number";
-  // ranking[0] is only the best among accepted candidates: if the strongest candidates abstained,
-  // it is not the overall best. abstained lists everyone left out, in input order, so a caller can
-  // tell the two cases apart before treating ranking[0] as the answer.
-  const ranking = order.filter(isOk).sort((a, b) => answers[b].score - answers[a].score);
+  const scored = (id) => typeof answers[id]?.score === "number";
+  const isOk = (id) => answers[id]?.status === "ok" && scored(id);
+  // ranking orders every candidate that returned an expected score, accepted or not: a Score below
+  // the threshold is usually mass split between two adjacent levels, which still orders candidates.
+  // abstained lists the tentative ones, in input order: their place can be off by about one level,
+  // so read ranking[0] as the overall best only when abstained is empty or does not reach the top.
+  // (A gateway that still drops the score of an abstained answer leaves it out of ranking.)
+  const ranking = order.filter(scored).sort((a, b) => answers[b].score - answers[a].score);
   const abstained = order.filter((id) => !isOk(id));
   return { ...result, ranking, abstained };
 }
@@ -169,7 +172,7 @@ const tools = [
   },
   {
     name: "jev_score",
-    description: "Asks the JEV to score one or more criteria on the given state, via /master/decide (confidence threshold 0.65/0.80/0.90 by risk low/medium/high); with weights, the gateway also computes a composite value.",
+    description: "Asks the JEV to score one or more criteria on the given state, via /master/decide (confidence threshold 0.65/0.80/0.90 by risk low/medium/high); with weights, the gateway also computes a composite value. Score confidence measures how the probability spreads over the levels, so 5-level scales abstain most of the time (15% accepted vs 94% on 3 levels): use 3 levels unless more are distinctly describable, and describe each level as a situation (\"broken, workaround exists\"), not a degree (\"moderate\"). An abstained answer still carries its expected `score` as a tentative value.",
     inputSchema: { type: "object", additionalProperties: false, required: ["state", "criteria"], properties: {
       state: text8000,
       criteria: { type: "array", minItems: 1, maxItems: 32, items: { type: "object", additionalProperties: false, required: ["id", "question", "levels"], properties: {
@@ -184,7 +187,7 @@ const tools = [
   },
   {
     name: "jev_rank",
-    description: "Asks the JEV to score candidates against a criterion, via /master/decide (confidence threshold 0.65/0.80/0.90 by risk low/medium/high). Also returns `ranking` (accepted candidate ids ordered by score) and `abstained` (candidate ids left out, in input order). ranking[0] is the best only among accepted candidates: check abstained is empty before treating it as the overall best.",
+    description: "Asks the JEV to score candidates against a criterion, via /master/decide (confidence threshold 0.65/0.80/0.90 by risk low/medium/high). Returns `ranking` (every scored candidate id, best first, abstained ones included at their tentative place) and `abstained` (ids below the threshold, in input order: their place can be off by about one level). For triage, read in ranking order; when one candidate's level decides an action, use only an id that is not in abstained. Levels: 3 unless more are distinctly describable, each describing a situation, not a degree word.",
     inputSchema: { type: "object", additionalProperties: false, required: ["criterion", "candidates"], properties: {
       criterion: text8000,
       candidates: { type: "array", minItems: 2, maxItems: 32, items: item },

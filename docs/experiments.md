@@ -8,6 +8,35 @@ a new reason. Newest first.
 improvement only if it lowers cost-weighted Claude tokens (or keeps them flat) with equal correctness.
 Cost-weighted = uncached input ×1 + cache creation ×1.25 + cache read ×0.1 + output ×5.
 
+## 2026-10-18 — mass Score abstentions in `jev_score` / `jev_rank` batches (fix)
+
+- **Finding:** Sophia saw batches of 8 answers with 8 abstentions in most rounds. The router log confirms it:
+  since 10-17, `jev_score` batches on 5-level scales abstained 12/12, 6/6 and 4/5 (confidence 0–0.58); the
+  10-15 replay already showed `jev_rank` 67–83% and `jev_score` 50% abstention. Hook questions abstain too
+  (`risk` 33% at 0.80, `direction` 35%, `completion` 55%) but those are Choice and out of this fix.
+- **Cause:** Score `confidence` is a spread measure, `1 − MAD(from the mode) / MAD(uniform)`
+  (docs.typesafe.ai/confidence), not a probability. On 1,610 Score answers since 10-10, 3-level scales passed
+  0.65 94% of the time, 4-level 37%, 5-level 15% (31% at 0.50, 47% at 0.40). A direct API probe (96 answers,
+  per-level probabilities) showed most abstentions are mass split between two *adjacent* levels (e.g.
+  0.59/0.35 on levels 0/1 → confidence 0.57, score 0.5), which still orders candidates correctly; genuinely
+  uncertain items spread over 3+ levels (confidence 0.0–0.3). The gateway nulled the score below threshold, so
+  a ranking lost exactly the candidates that were merely "between two levels".
+- **Rejected:** changing `jev_rank`'s default levels from 5 degree words to 3 situation-described levels.
+  Gateway A/B, 3 cases × 3 runs: 62% accepted with the 5 degree words, 56% with the 3 situations. The docs'
+  advice (describe situations, not degrees) is kept as guidance, not as the fix. Also rejected: a lower
+  Score-only floor (`JEV_MIN_CONFIDENCE_SCORE`) and a "mass within one level ≥ threshold" rule, both of which
+  change the documented threshold contract (the latter is trivial on 3-level scales).
+- **Kept (JEV: keep_score, 0.97):** an abstained Score keeps its expected `score` under `status: abstain`
+  (`workflow.ts`); `jev_rank` orders every scored candidate and keeps `abstained` as the tentative list
+  (`master-jev-mcp.mjs`); tool descriptions, skill and READMEs tell callers to use 3 situation-described
+  levels and how to read a ranking with abstentions. Composite and cascade still gate on `status`, so no
+  abstention becomes a value. The MCP change works with the old gateway (null score → left out, as before).
+- **Rollout:** the MCP server, skill and docs apply to new sessions on install; the gateway part applies on
+  its next restart (`systemctl --user restart master-jev-hook`, ~0.3 s; hooks fail open and the MCP server
+  reports "Gateway unavailable" for a call in that window). The gateway was left running on purpose.
+- **Open:** the hook Choice questions (`completion` 55%, `direction` 35%) deserve their own replay with the
+  `eval-jev-1.14` harness before changing their wording.
+
 ## 2026-09-28 — v1.2.0 rule text regression (fix)
 
 - **Finding:** model-side JEV calls in real Claude sessions (test fixtures excluded) fell from dozens a day under

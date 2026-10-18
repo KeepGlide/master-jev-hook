@@ -140,6 +140,19 @@ the decision. Noul (used by `jev_verify`) is a probability of "yes", not
 a confidence, and has its own threshold. No JEV result proves facts or
 grants permissions on its own.
 
+**Score scales.** Score confidence measures how the probability spreads over
+the levels ([docs.typesafe.ai/confidence](https://docs.typesafe.ai/confidence)),
+so the number and wording of levels decide how often a Score abstains. In
+real use (1,610 answers, Oct 2026) 3-level scales passed the 0.65 threshold
+94% of the time, 4-level 37% and 5-level 15%. Use 3 levels unless more are
+distinctly describable, and describe each level as a situation ("broken,
+workaround exists"), not a degree ("moderate"). Most Score abstentions are
+probability split between two adjacent levels, which still orders candidates:
+an abstained Score keeps its expected `score` under `status: abstain`
+(tentative, within about one level), and `jev_rank` places it in `ranking`
+while listing it in `abstained`. Read a ranking in order for triage; when one
+item's level decides an action, use only answers with `status: ok`.
+
 ### Claude Code hooks
 
 All hooks are fail-open: error, timeout, JEV abstention or confidence below

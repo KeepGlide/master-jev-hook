@@ -162,14 +162,14 @@ it("jev_score without weights omits the composite field", async () => {
   expect(gw.received.body).toEqual({ state: "Proposal Y", questions: { risk_level: { type: "score", instructions: "What is the risk?", criteria: ["low", "high"] } } });
 });
 
-it("jev_rank builds one score question per candidate and adds a ranking sorted by score, ignoring non-ok answers", async () => {
+it("jev_rank builds one score question per candidate and ranks every scored answer, abstained ones at their tentative place", async () => {
   const gw = fakeGateway({
     status: "partial",
     answers: {
       a: { type: "score", status: "ok", score: 1, confidence: 0.9 },
       b: { type: "score", status: "ok", score: 3, confidence: 0.9 },
       c: { type: "score", status: "ok", score: 3, confidence: 0.9 },
-      d: { type: "score", status: "abstain", score: null, confidence: 0.5 },
+      d: { type: "score", status: "abstain", score: 2, confidence: 0.5 },
     },
     stages: [], calls: 1, inputTokens: 0, outputTokens: 0, latencyMs: 1,
   });
@@ -189,13 +189,13 @@ it("jev_rank builds one score question per candidate and adds a ranking sorted b
     },
   });
   const payload = JSON.parse(rows[0].result.content[0].text);
-  expect(payload.ranking).toEqual(["b", "c", "a"]);
+  expect(payload.ranking).toEqual(["b", "c", "d", "a"]);
   expect(payload.abstained).toEqual(["d"]);
 });
 
-it("jev_rank lists abstained candidates in input order so a caller can spot a bad ranking[0]", async () => {
-  // All the strong candidates abstain; only the weak one is accepted. ranking[0] is still "weak"
-  // (the best among accepted candidates), but a non-empty `abstained` warns it is not the overall best.
+it("jev_rank leaves out of ranking an abstained answer whose score a gateway dropped, and still lists it in abstained", async () => {
+  // Older gateways null the score of an abstained Score: the candidate cannot be placed, but the
+  // caller is still told it was left out, so ranking[0] ("weak") is not mistaken for the overall best.
   const gw = fakeGateway({
     status: "partial",
     answers: {

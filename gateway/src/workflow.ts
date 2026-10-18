@@ -14,6 +14,7 @@ export interface Workflow {
 }
 export interface WorkflowResult {
   status: "ok" | "partial" | "abstain" | "fallback";
+  /** An abstained Score keeps its expected `score` (tentative, within about one level); an abstained Choice has `choice: null`. */
   answers: Record<string, { type: string; status: "ok" | "abstain" | "skipped"; choice?: string | null; score?: number | null; confidence?: number; noul?: number }>;
   stages: { id: string; status: "ok" | "partial" | "abstain" | "skipped" | "fallback"; questions: string[] }[];
   calls: number; inputTokens: number; outputTokens: number; latencyMs: number;
@@ -112,7 +113,9 @@ export async function runWorkflow(plan: Workflow, ask: AskJev, model: string, th
             batch[name] = { type: "choice", status: a.confidence >= threshold && a.choice !== "abstain" ? "ok" : "abstain", choice: a.confidence >= threshold ? a.choice : null, confidence: a.confidence };
           } else if (a.type === "score") {
             requireValid(Array.isArray(q.criteria) && num(a.score, q.criteria.length - 1));
-            batch[name] = { type: "score", status: a.confidence >= threshold ? "ok" : "abstain", score: a.confidence >= threshold ? a.score : null, confidence: a.confidence };
+            // A Score below the threshold is usually mass split between two adjacent levels: the expected
+            // score still orders candidates, so it is kept under status "abstain" (never promoted to ok).
+            batch[name] = { type: "score", status: a.confidence >= threshold ? "ok" : "abstain", score: a.score, confidence: a.confidence };
           }
         }
       }
