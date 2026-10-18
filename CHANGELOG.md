@@ -6,6 +6,12 @@ versions follow SemVer and the gateway's `package.json`. The measurements behind
 
 ## [Unreleased]
 
+### Changed
+
+- **The dashboard page now carries the KeepGlide "E2" look.** A light aurora wash, a dot field, a glide arc and a fork
+  echo sit behind the page, the fork mark grows to 64 px, the Answered numeral and the ring use a teal-light accent,
+  and the muted text and live dot gain contrast. Data behaviour is unchanged. Restart the gateway service to serve it.
+
 ### Fixed
 
 - **The JEV answers far more often in batches (`jev_score`, `jev_rank`).** Since 2026-10-17 whole batches came back
