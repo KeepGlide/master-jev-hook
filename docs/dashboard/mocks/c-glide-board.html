@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Master-JEV Hook · Painel (mock C, Glide board)</title>
+<style>
+:root {
+  color-scheme: light;
+  --font-body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-size-2xs: 0.6875rem;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-md: 1rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 2rem;
+  --font-size-3xl: 2.75rem;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-body: 1.5;
+  --line-height-heading: 1.2;
+  --space-2xs: 0.25rem;
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --radius-tile: 1rem;
+  --radius-control: 0.5rem;
+  --radius-pill: 62.5rem;
+  --line-width: 1px;
+  --accent-width: 0.3125rem;
+  --focus-width: 3px;
+  --focus-offset: 2px;
+  --bento-columns: 12;
+  --page-max: 80rem;
+  --tile-min-height: 7.5rem;
+  --bars-height: 12rem;
+  --histogram-height: 9rem;
+  --gauge-height: 9rem;
+  --gauge-width: 2.5rem;
+  --scale-bar-width: 2.5rem;
+  --weight-bar-height: 1.25rem;
+  --bar-gap: 0.1875rem;
+  --swatch-size: 0.75rem;
+  --live-dot-size: 0.625rem;
+  --icon-size: 3.5rem;
+  --company-mark-size: 1.75rem;
+  --dot-size: 1px;
+  --dot-stop: 1.5px;
+  --dot-step: 1.5rem;
+  /* light theme: brand colours where they pass the floors, ink variants where they do not */
+  --color-plane: #F4F8FA;
+  --color-surface: #FFFFFF;
+  --color-text: #1E2A47;
+  --color-text-muted: #4A5873;
+  --color-line: #9AD9E6;
+  --color-line-strong: #2A7D8F;
+  --color-dot: rgb(154 217 230 / 0.6);
+  --color-data: #17807A;
+  --color-answered: #17807A;
+  --color-partial: #7EE8DC;
+  --color-abstain: #9AD9E6;
+  --color-failed: #1E2A47;
+  --color-skipped: #5D6780;
+  --color-coral: #F2715F;
+  --color-focus: #17807A;
+  --color-threshold: #2A7D8F;
+}
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-plane: #1E2A47;
+  --color-surface: #26334F;
+  --color-text: #E9EEF8;
+  --color-text-muted: #AEB9CF;
+  --color-line: rgb(154 217 230 / 0.35);
+  --color-line-strong: #9AD9E6;
+  --color-dot: rgb(154 217 230 / 0.14);
+  --color-data: #2BB8AE;
+  --color-answered: #2BB8AE;
+  --color-partial: #7EE8DC;
+  --color-abstain: #9AD9E6;
+  --color-failed: #E9EEF8;
+  --color-skipped: #9AA4B8;
+  --color-focus: #2BB8AE;
+  --color-threshold: #9AD9E6;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-block-size: 100vh;
+  font-family: var(--font-body);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-body);
+  color: var(--color-text);
+  background-color: var(--color-plane);
+  background-image: radial-gradient(circle at center, var(--color-dot) var(--dot-size), transparent var(--dot-stop));
+  background-size: var(--dot-step) var(--dot-step);
+}
+:focus-visible { outline: var(--focus-width) solid var(--color-focus); outline-offset: var(--focus-offset); }
+.visually-hidden {
+  position: absolute;
+  inline-size: var(--line-width);
+  block-size: var(--line-width);
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.page { max-inline-size: var(--page-max); margin-inline: auto; padding: var(--space-md); }
+@media (min-width: 768px) { .page { padding: var(--space-lg); } }
+
+/* bento board: one 12-column grid on desktop, one column on phones */
+.bento { display: grid; gap: var(--space-md); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 768px) { .bento { grid-template-columns: repeat(var(--bento-columns), minmax(0, 1fr)); } }
+.bento__cell { --cell-span: 12; grid-column: 1 / -1; min-inline-size: 0; }
+@media (min-width: 768px) { .bento__cell { grid-column: span var(--cell-span); } }
+.bento__cell--span-2 { --cell-span: 2; }
+.bento__cell--span-3 { --cell-span: 3; }
+.bento__cell--span-4 { --cell-span: 4; }
+.bento__cell--span-5 { --cell-span: 5; }
+.bento__cell--span-7 { --cell-span: 7; }
+
+.panel {
+  display: grid;
+  align-content: start;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: var(--line-width) solid var(--color-line);
+  border-radius: var(--radius-tile);
+}
+.section-head { display: grid; gap: var(--space-2xs); }
+.section-head__title { margin: 0; font-size: var(--font-size-xl); line-height: var(--line-height-heading); }
+.section-head__note, .weights__note, .weights__source { margin: 0; font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.weights__block { display: grid; gap: var(--space-xs); }
+.weights__block h3 { margin: 0; font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); }
+@media (min-width: 768px) {
+  .weights { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .weights > .section-head, .weights > .weights__note { grid-column: 1 / -1; }
+}
+
+/* masthead */
+.masthead {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--color-surface);
+  border: var(--line-width) solid var(--color-line);
+  border-radius: var(--radius-tile);
+}
+.masthead__brand { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-md); }
+.masthead__icon { inline-size: var(--icon-size); block-size: var(--icon-size); flex: none; }
+.masthead__title { margin: 0; font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); line-height: var(--line-height-heading); }
+.masthead__company { display: grid; gap: var(--space-2xs); font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.masthead__company-row { display: flex; align-items: center; gap: var(--space-xs); }
+.masthead__company-mark { inline-size: var(--company-mark-size); block-size: var(--company-mark-size); }
+.masthead__tagline { margin: 0; font-size: var(--font-size-xs); }
+.masthead__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-2xs) var(--space-sm);
+  border: var(--line-width) solid var(--color-line-strong);
+  border-radius: var(--radius-pill);
+  font-weight: var(--font-weight-semibold);
+}
+.masthead__live-dot { inline-size: var(--live-dot-size); block-size: var(--live-dot-size); border-radius: 50%; background: var(--color-coral); }
+@media (prefers-reduced-motion: no-preference) { .masthead__live-dot { animation: live-pulse 2s ease-in-out infinite; } }
+@keyframes live-pulse { 50% { transform: scale(1.4); } }
+.masthead__facts { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-lg); margin: 0; font-size: var(--font-size-sm); }
+.masthead__fact { display: flex; gap: var(--space-2xs); }
+.masthead__fact dt { color: var(--color-text-muted); }
+.masthead__fact dd { margin: 0; font-weight: var(--font-weight-semibold); }
+.masthead__controls { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-sm); }
+.field { display: grid; gap: var(--space-2xs); font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.control {
+  font: inherit;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  background: var(--color-surface);
+  border: var(--line-width) solid var(--color-line-strong);
+  border-radius: var(--radius-control);
+  padding: var(--space-xs) var(--space-sm);
+}
+.control[aria-pressed="true"] { background: var(--color-text); color: var(--color-surface); }
+
+/* tiles */
+.tile {
+  display: grid;
+  align-content: start;
+  gap: var(--space-2xs);
+  min-block-size: var(--tile-min-height);
+  padding: var(--space-md);
+  background: var(--color-surface);
+  border: var(--line-width) solid var(--color-line);
+  border-inline-start: var(--accent-width) solid var(--tile-accent, var(--color-line-strong));
+  border-radius: var(--radius-tile);
+}
+.tile__label { margin: 0; font-size: var(--font-size-sm); color: var(--color-text-muted); }
+.tile__value { margin: 0; font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); line-height: var(--line-height-heading); font-variant-numeric: tabular-nums; }
+.tile__note { margin: 0; font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.tile--hero .tile__value { font-size: var(--font-size-3xl); }
+.tile--answered { --tile-accent: var(--color-answered); }
+.tile--partial { --tile-accent: var(--color-partial); }
+.tile--abstain { --tile-accent: var(--color-abstain); }
+.tile--failed { --tile-accent: var(--color-failed); }
+.tile--skipped { --tile-accent: var(--color-skipped); }
+
+/* swatches shared by legends, the requests table and the stacked bars */
+.swatch { display: inline-block; flex: none; inline-size: var(--swatch-size); block-size: var(--swatch-size); border-radius: var(--radius-control); background: var(--swatch-color); }
+.swatch--answered { --swatch-color: var(--color-answered); }
+.swatch--partial { --swatch-color: var(--color-partial); }
+.swatch--abstain { --swatch-color: var(--color-abstain); }
+.swatch--failed { --swatch-color: var(--color-failed); }
+.swatch--skipped { --swatch-color: var(--color-skipped); }
+.swatch--data { --swatch-color: var(--color-data); }
+.swatch--text { --swatch-color: var(--color-text); }
+.legend { display: flex; flex-wrap: wrap; gap: var(--space-xs) var(--space-md); margin: 0; padding: 0; list-style: none; font-size: var(--font-size-xs); }
+.legend__item { display: inline-flex; align-items: center; gap: var(--space-2xs); }
+
+/* hourly stacked bars */
+.bars__plot { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: var(--bar-gap); block-size: var(--bars-height); }
+.bars__hour { display: flex; flex-direction: column-reverse; block-size: 100%; }
+.bars__segment { display: block; flex: none; block-size: calc(var(--value) / var(--chart-max) * 100%); background: var(--swatch-color); }
+.bars__labels { display: grid; grid-template-columns: repeat(24, minmax(0, 1fr)); gap: var(--bar-gap); margin: 0; padding: 0; list-style: none; font-size: var(--font-size-2xs); color: var(--color-text-muted); text-align: center; font-variant-numeric: tabular-nums; }
+
+/* confidence histogram */
+.histogram { position: relative; display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); block-size: var(--histogram-height); }
+.histogram__bin { display: flex; flex-direction: column; justify-content: flex-end; block-size: 100%; }
+.histogram__fill { display: block; margin-inline: var(--bar-gap); block-size: calc(var(--value) / var(--chart-max) * 100%); background: var(--color-data); }
+.histogram__threshold { position: absolute; inset-block: 0; inset-inline-start: calc(var(--threshold) * 100%); border-inline-start: var(--line-width) dashed var(--color-threshold); }
+.histogram__axis { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; font-size: var(--font-size-2xs); color: var(--color-text-muted); text-align: center; font-variant-numeric: tabular-nums; }
+.histogram__axis li { display: grid; gap: var(--space-2xs); }
+.histogram__axis strong { font-weight: var(--font-weight-semibold); color: var(--color-text); }
+
+/* weights panel: the hero */
+.gauges { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-md); margin: 0; padding: 0; list-style: none; }
+.gauge { display: grid; justify-items: center; gap: var(--space-xs); text-align: center; font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.gauge__value { font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-text); font-variant-numeric: tabular-nums; }
+.gauge__track { position: relative; inline-size: var(--gauge-width); block-size: var(--gauge-height); border: var(--line-width) solid var(--color-line-strong); border-radius: var(--radius-control); overflow: hidden; }
+.gauge__fill { position: absolute; inset-inline: 0; inset-block-end: 0; block-size: calc(var(--value) * 100%); background: var(--color-data); }
+.scales { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-md); margin: 0; padding: 0; list-style: none; }
+.scale { display: grid; justify-items: center; gap: var(--space-xs); text-align: center; font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.scale__value { font-size: var(--font-size-sm); font-weight: var(--font-weight-bold); color: var(--color-text); font-variant-numeric: tabular-nums; }
+.scale__area { display: flex; align-items: end; inline-size: 100%; block-size: var(--gauge-height); border-block-end: var(--line-width) solid var(--color-line-strong); }
+.scale__bar { display: block; inline-size: var(--scale-bar-width); block-size: calc(var(--value) * 100%); margin-inline: auto; background: var(--color-data); }
+.stack { display: flex; block-size: var(--weight-bar-height); overflow: hidden; border: var(--line-width) solid var(--color-line-strong); border-radius: var(--radius-control); }
+.stack__segment { flex: 0 0 calc(var(--value) * 100%); block-size: 100%; background: var(--swatch-color); }
+
+/* requests table */
+.requests__filters { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin: 0; padding: 0; list-style: none; }
+.chip { font: inherit; font-size: var(--font-size-xs); color: var(--color-text); background: var(--color-surface); border: var(--line-width) solid var(--color-line-strong); border-radius: var(--radius-pill); padding: var(--space-2xs) var(--space-sm); }
+.chip[aria-pressed="true"] { background: var(--color-text); color: var(--color-surface); }
+.requests__table { inline-size: 100%; border-collapse: collapse; font-size: var(--font-size-sm); font-variant-numeric: tabular-nums; }
+.requests__table th, .requests__table td { padding: var(--space-xs) var(--space-sm); text-align: start; vertical-align: top; border-block-end: var(--line-width) solid var(--color-line); }
+.requests__table th { font-size: var(--font-size-xs); font-weight: var(--font-weight-semibold); color: var(--color-text-muted); }
+.requests__expand { font: inherit; font-size: var(--font-size-xs); color: var(--color-text); background: none; border: 0; padding: 0; text-align: start; text-decoration: underline; cursor: pointer; }
+.requests__kind { display: block; font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.requests__code { font-family: var(--font-mono); font-size: var(--font-size-xs); overflow-wrap: anywhere; }
+.requests__detail > td { background: var(--color-plane); }
+.detail { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: var(--space-sm) var(--space-lg); margin: 0; }
+.detail div { display: grid; gap: var(--space-2xs); }
+.detail dt { font-size: var(--font-size-xs); color: var(--color-text-muted); }
+.detail dd { margin: 0; }
+.detail ul { margin: 0; padding-inline-start: var(--space-md); }
+
+/* advanced compare table */
+.advanced summary { font-weight: var(--font-weight-semibold); cursor: pointer; }
+.compare { inline-size: 100%; margin-block-start: var(--space-md); border-collapse: collapse; font-size: var(--font-size-sm); font-variant-numeric: tabular-nums; }
+.compare caption { text-align: start; font-size: var(--font-size-xs); color: var(--color-text-muted); padding-block-end: var(--space-xs); }
+.compare th, .compare td { padding: var(--space-2xs) var(--space-xs); text-align: end; border-block-end: var(--line-width) solid var(--color-line); }
+.compare th:first-child, .compare td:first-child { text-align: start; }
+.footer { margin: 0; padding: var(--space-md) 0; font-size: var(--font-size-xs); color: var(--color-text-muted); }
+
+/* phones: one column, tables become stacked cards */
+@media (max-width: 767px) {
+  .requests__table thead { position: absolute; inline-size: var(--line-width); block-size: var(--line-width); overflow: hidden; clip-path: inset(50%); }
+  .requests__table, .requests__table tbody, .requests__table tr, .requests__table td { display: block; inline-size: 100%; }
+  .requests__table tr:not(.requests__detail) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-2xs) var(--space-sm); padding: var(--space-sm) 0; border-block-end: var(--line-width) solid var(--color-line); }
+  .requests__table td { display: grid; gap: var(--space-2xs); padding: 0; border: 0; }
+  .requests__table td::before { content: attr(data-label); font-size: var(--font-size-xs); color: var(--color-text-muted); }
+  .requests__table td[colspan] { grid-column: 1 / -1; }
+  .requests__table td[colspan]::before { content: none; }
+  .detail { grid-template-columns: minmax(0, 1fr); }
+  .compare th:nth-child(n+2), .compare td:nth-child(n+2) { padding-inline: var(--space-2xs); }
+}
+</style>
+</head>
+<body>
+<main class="page">
+<div class="bento">
+
+<h2 class="visually-hidden">Painel do JEV</h2>
+
+<header class="bento__cell masthead">
+  <div class="masthead__brand">
+    <svg class="masthead__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" aria-hidden="true" focusable="false">
+      <rect width="1024" height="1024" rx="230" fill="#1E2A47"/>
+      <g transform="translate(64 64) scale(0.875)">
+        <g fill="none" stroke="#9AD9E6" stroke-width="22" stroke-linecap="round" stroke-dasharray="0.1 56">
+          <path d="M512 215 C470 360 330 520 268 730"/>
+          <path d="M512 215 C554 360 694 520 756 730"/>
+        </g>
+        <path fill="#2BB8AE" d="M490 212 C482 330 518 470 500 600 C492 660 486 720 494 776 L530 776 C522 720 528 660 536 600 C554 470 518 330 534 212 Z"/>
+        <circle cx="512" cy="200" r="46" fill="#7EE8DC"/>
+        <g fill="#9AD9E6">
+          <circle cx="248" cy="800" r="40"/>
+          <circle cx="776" cy="800" r="40"/>
+        </g>
+        <circle cx="512" cy="820" r="56" fill="#F2715F"/>
+      </g>
+    </svg>
+    <div>
+      <h1 class="masthead__title">Master-JEV Hook</h1>
+      <div class="masthead__company">
+        <p class="masthead__company-row"><img class="masthead__company-mark" src="assets/keepglide-icon-256.png" width="256" height="256" alt=""><span>by KeepGlide</span></p>
+        <p class="masthead__tagline">Complexo, sem atrito</p>
+      </div>
+    </div>
+    <p class="masthead__status"><span class="masthead__live-dot" aria-hidden="true"></span>Online</p>
+  </div>
+  <dl class="masthead__facts">
+    <div class="masthead__fact"><dt>Modelo</dt><dd>jev-1.13.0 via TypeSafe</dd></div>
+    <div class="masthead__fact"><dt>Cliente</dt><dd>hook</dd></div>
+    <div class="masthead__fact"><dt>Gateway</dt><dd>no ar há 3 h 12 min</dd></div>
+    <div class="masthead__fact"><dt>Último pedido</dt><dd>há 4 s</dd></div>
+  </dl>
+  <div class="masthead__controls">
+    <label class="field">Cliente
+      <select class="control" data-testid="client-select"><option>hook</option></select>
+    </label>
+    <label class="field">Idioma
+      <select class="control" data-testid="language-select"><option>pt-BR</option><option>en</option></select>
+    </label>
+    <button class="control" type="button" aria-pressed="false" data-testid="theme-toggle">Tema escuro</button>
+  </div>
+</header>
+
+<article class="bento__cell bento__cell--span-4 tile tile--hero">
+  <p class="tile__label">Pedidos recebidos</p>
+  <p class="tile__value">612</p>
+  <p class="tile__note">25,5 por hora · últimas 24 horas</p>
+</article>
+<article class="bento__cell bento__cell--span-2 tile tile--answered">
+  <p class="tile__label">Respondidas</p>
+  <p class="tile__value">373</p>
+  <p class="tile__note">61 % do total</p>
+</article>
+<article class="bento__cell bento__cell--span-2 tile tile--partial">
+  <p class="tile__label">Parciais</p>
+  <p class="tile__value">55</p>
+  <p class="tile__note">9 % do total</p>
+</article>
+<article class="bento__cell bento__cell--span-2 tile tile--abstain">
+  <p class="tile__label">Sem decisão</p>
+  <p class="tile__value">147</p>
+  <p class="tile__note">24 % do total</p>
+</article>
+<article class="bento__cell bento__cell--span-2 tile tile--failed">
+  <p class="tile__label">Falhas</p>
+  <p class="tile__value">6</p>
+  <p class="tile__note">1 % do total</p>
+</article>
+
+<article class="bento__cell bento__cell--span-2 tile tile--skipped">
+  <p class="tile__label">Não enviadas ao JEV</p>
+  <p class="tile__value">31</p>
+  <p class="tile__note">5 % do total</p>
+</article>
+<article class="bento__cell bento__cell--span-3 tile">
+  <p class="tile__label">Confiança média</p>
+  <p class="tile__value">0,84</p>
+  <p class="tile__note">mín. 0,12</p>
+</article>
+<article class="bento__cell bento__cell--span-3 tile">
+  <p class="tile__label">Tempo de resposta</p>
+  <p class="tile__value">302 ms</p>
+  <p class="tile__note">p95 391 ms</p>
+</article>
+<article class="bento__cell bento__cell--span-4 tile">
+  <p class="tile__label">Tokens do JEV</p>
+  <p class="tile__value">858 k</p>
+  <p class="tile__note">822 k entrada · 36 k saída</p>
+</article>
+
+<section class="bento__cell bento__cell--span-7 panel weights" aria-labelledby="weights-title">
+  <header class="section-head">
+    <h2 class="section-head__title" id="weights-title">Pesos e limiares</h2>
+    <p class="section-head__note">Informativo: mostra a configuração atual, sem controle sobre o gateway.</p>
+  </header>
+  <div class="weights__block">
+    <h3>Limiar por risco</h3>
+    <ul class="gauges">
+      <li class="gauge" style="--value: 0.65"><span class="gauge__value">0,65</span><span class="gauge__track"><span class="gauge__fill"></span></span><span>baixo</span><span>70 % dos pedidos · 71 % aceitos</span></li>
+      <li class="gauge" style="--value: 0.80"><span class="gauge__value">0,80</span><span class="gauge__track"><span class="gauge__fill"></span></span><span>médio</span><span>28 % dos pedidos · 67 % aceitos</span></li>
+      <li class="gauge" style="--value: 0.90"><span class="gauge__value">0,90</span><span class="gauge__track"><span class="gauge__fill"></span></span><span>alto</span><span>2 % dos pedidos · 55 % aceitos</span></li>
+    </ul>
+  </div>
+  <div class="weights__block">
+    <h3>Escalas do Score: aprovação com limiar 0,65</h3>
+    <ul class="scales">
+      <li class="scale" style="--value: 0.94"><span class="scale__value">94 %</span><span class="scale__area"><span class="scale__bar"></span></span><span>3 níveis</span><span>n = 792</span></li>
+      <li class="scale" style="--value: 0.37"><span class="scale__value">37 %</span><span class="scale__area"><span class="scale__bar"></span></span><span>4 níveis</span><span>n = 83</span></li>
+      <li class="scale" style="--value: 0.15"><span class="scale__value">15 %</span><span class="scale__area"><span class="scale__bar"></span></span><span>5 níveis</span><span>n = 735</span></li>
+    </ul>
+    <p class="weights__note">Use 3 níveis descritos como situações; escalas de 5 níveis abstêm 85 % das vezes.</p>
+  </div>
+  <div class="weights__block">
+    <h3>Tipos de pergunta</h3>
+    <div class="stack" aria-hidden="true">
+      <span class="stack__segment swatch--data" style="--value: 0.62"></span>
+      <span class="stack__segment" style="--value: 0.30; --swatch-color: var(--color-partial)"></span>
+      <span class="stack__segment" style="--value: 0.08; --swatch-color: var(--color-abstain)"></span>
+    </div>
+    <ul class="legend">
+      <li class="legend__item"><span class="swatch swatch--data"></span>Choice 62 %</li>
+      <li class="legend__item"><span class="swatch swatch--partial"></span>Score 30 %</li>
+      <li class="legend__item"><span class="swatch swatch--abstain"></span>Noul 8 %</li>
+    </ul>
+  </div>
+  <div class="weights__block">
+    <h3>Pesos do score composto</h3>
+    <p class="weights__source">jev_score · 13:03</p>
+    <div class="stack" aria-hidden="true">
+      <span class="stack__segment swatch--data" style="--value: 0.30"></span>
+      <span class="stack__segment" style="--value: 0.30; --swatch-color: var(--color-partial)"></span>
+      <span class="stack__segment swatch--text" style="--value: 0.40"></span>
+    </div>
+    <ul class="legend">
+      <li class="legend__item"><span class="swatch swatch--data"></span>clareza 0,30 · nota 2,4</li>
+      <li class="legend__item"><span class="swatch swatch--partial"></span>completude 0,30 · nota 2,1</li>
+      <li class="legend__item"><span class="swatch swatch--text"></span>segurança 0,40 · nota 3,6</li>
+    </ul>
+    <p class="weights__note"><strong>composto 0,62 · ok</strong></p>
+  </div>
+  <p class="weights__note">Uma Score abstida mantém o score esperado (provisório, ±1 nível); o ranking do jev_rank ordena todas, as abstidas em <code>abstained</code>.</p>
+</section>
+
+<section class="bento__cell bento__cell--span-5 panel" aria-labelledby="histogram-title">
+  <header class="section-head">
+    <h2 class="section-head__title" id="histogram-title">Confiança das respostas</h2>
+    <p class="section-head__note">Confiança declarada em faixas de 0,1. A linha tracejada marca o limiar 0,65.</p>
+  </header>
+  <div class="histogram" style="--chart-max: 236; --threshold: 0.65" role="img" aria-label="Histograma da confiança declarada; contagens por faixa na lista abaixo">
+      <div class="histogram__bin"><span class="histogram__fill" style="--value: 6"></span></div>
+      <div class="histogram__bin"><span class="histogram__fill" style="--value: 9"></span></div>
+      <div class="histogram__bin"><span class="histogram__fill" style="--value: 14"></span></div>
+      <div class="histogram__bin"><span class="histogram__fill" style="--value: 22"></span></div>
+      <div class="histogram__bin"><span class="histogram__fill" style="--value: 31"></span></div>
+      <div class="histogram__bin"><span class="histogram__fill" style="--value: 40"></span></div>
+      <div class="histogram__bin"><span class="histogram__fill" style="--value: 38"></span></div>
+      <div class="histogram__bin"><span class="histogram__fill" style="--value: 61"></span></div>
+      <div class="histogram__bin"><span class="histogram__fill" style="--value: 118"></span></div>
+      <div class="histogram__bin"><span class="histogram__fill" style="--value: 236"></span></div>
+    <span class="histogram__threshold" aria-hidden="true"></span>
+  </div>
+  <ol class="histogram__axis">
+    <li><span>0,0</span><strong>6</strong></li>
+    <li><span>0,1</span><strong>9</strong></li>
+    <li><span>0,2</span><strong>14</strong></li>
+    <li><span>0,3</span><strong>22</strong></li>
+    <li><span>0,4</span><strong>31</strong></li>
+    <li><span>0,5</span><strong>40</strong></li>
+    <li><span>0,6</span><strong>38</strong></li>
+    <li><span>0,7</span><strong>61</strong></li>
+    <li><span>0,8</span><strong>118</strong></li>
+    <li><span>0,9</span><strong>236</strong></li>
+  </ol>
+</section>
+
+<section class="bento__cell bento__cell--span-7 panel" aria-labelledby="hourly-title">
+  <header class="section-head">
+    <h2 class="section-head__title" id="hourly-title">Pedidos por hora</h2>
+    <p class="section-head__note">Últimas 24 horas, da hora 02 à hora 01. Total máximo por hora: 55.</p>
+  </header>
+  <ul class="legend">
+    <li class="legend__item"><span class="swatch swatch--answered"></span>Respondidas</li>
+    <li class="legend__item"><span class="swatch swatch--partial"></span>Parciais</li>
+    <li class="legend__item"><span class="swatch swatch--abstain"></span>Sem decisão</li>
+    <li class="legend__item"><span class="swatch swatch--failed"></span>Falhas</li>
+    <li class="legend__item"><span class="swatch swatch--skipped"></span>Não enviadas</li>
+  </ul>
+  <div class="bars__plot" style="--chart-max: 55" aria-hidden="true">
+    <div class="bars__hour" title="02 h: 15 pedidos"><span class="bars__segment swatch--answered" style="--value: 9"></span><span class="bars__segment swatch--partial" style="--value: 1"></span><span class="bars__segment swatch--abstain" style="--value: 4"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 1"></span></div>
+    <div class="bars__hour" title="03 h: 9 pedidos"><span class="bars__segment swatch--answered" style="--value: 6"></span><span class="bars__segment swatch--partial" style="--value: 1"></span><span class="bars__segment swatch--abstain" style="--value: 2"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 0"></span></div>
+    <div class="bars__hour" title="04 h: 3 pedidos"><span class="bars__segment swatch--answered" style="--value: 2"></span><span class="bars__segment swatch--partial" style="--value: 0"></span><span class="bars__segment swatch--abstain" style="--value: 1"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 0"></span></div>
+    <div class="bars__hour" title="05 h: 0 pedidos"><span class="bars__segment swatch--answered" style="--value: 0"></span><span class="bars__segment swatch--partial" style="--value: 0"></span><span class="bars__segment swatch--abstain" style="--value: 0"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 0"></span></div>
+    <div class="bars__hour" title="06 h: 0 pedidos"><span class="bars__segment swatch--answered" style="--value: 0"></span><span class="bars__segment swatch--partial" style="--value: 0"></span><span class="bars__segment swatch--abstain" style="--value: 0"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 0"></span></div>
+    <div class="bars__hour" title="07 h: 1 pedidos"><span class="bars__segment swatch--answered" style="--value: 1"></span><span class="bars__segment swatch--partial" style="--value: 0"></span><span class="bars__segment swatch--abstain" style="--value: 0"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 0"></span></div>
+    <div class="bars__hour" title="08 h: 8 pedidos"><span class="bars__segment swatch--answered" style="--value: 4"></span><span class="bars__segment swatch--partial" style="--value: 1"></span><span class="bars__segment swatch--abstain" style="--value: 2"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 1"></span></div>
+    <div class="bars__hour" title="09 h: 20 pedidos"><span class="bars__segment swatch--answered" style="--value: 12"></span><span class="bars__segment swatch--partial" style="--value: 2"></span><span class="bars__segment swatch--abstain" style="--value: 5"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 1"></span></div>
+    <div class="bars__hour" title="10 h: 31 pedidos"><span class="bars__segment swatch--answered" style="--value: 18"></span><span class="bars__segment swatch--partial" style="--value: 3"></span><span class="bars__segment swatch--abstain" style="--value: 7"></span><span class="bars__segment swatch--failed" style="--value: 1"></span><span class="bars__segment swatch--skipped" style="--value: 2"></span></div>
+    <div class="bars__hour" title="11 h: 36 pedidos"><span class="bars__segment swatch--answered" style="--value: 22"></span><span class="bars__segment swatch--partial" style="--value: 3"></span><span class="bars__segment swatch--abstain" style="--value: 9"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 2"></span></div>
+    <div class="bars__hour" title="12 h: 30 pedidos"><span class="bars__segment swatch--answered" style="--value: 19"></span><span class="bars__segment swatch--partial" style="--value: 2"></span><span class="bars__segment swatch--abstain" style="--value: 8"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 1"></span></div>
+    <div class="bars__hour" title="13 h: 43 pedidos"><span class="bars__segment swatch--answered" style="--value: 25"></span><span class="bars__segment swatch--partial" style="--value: 4"></span><span class="bars__segment swatch--abstain" style="--value: 11"></span><span class="bars__segment swatch--failed" style="--value: 1"></span><span class="bars__segment swatch--skipped" style="--value: 2"></span></div>
+    <div class="bars__hour" title="14 h: 45 pedidos"><span class="bars__segment swatch--answered" style="--value: 28"></span><span class="bars__segment swatch--partial" style="--value: 5"></span><span class="bars__segment swatch--abstain" style="--value: 10"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 2"></span></div>
+    <div class="bars__hour" title="15 h: 39 pedidos"><span class="bars__segment swatch--answered" style="--value: 24"></span><span class="bars__segment swatch--partial" style="--value: 4"></span><span class="bars__segment swatch--abstain" style="--value: 9"></span><span class="bars__segment swatch--failed" style="--value: 1"></span><span class="bars__segment swatch--skipped" style="--value: 1"></span></div>
+    <div class="bars__hour" title="16 h: 34 pedidos"><span class="bars__segment swatch--answered" style="--value: 21"></span><span class="bars__segment swatch--partial" style="--value: 3"></span><span class="bars__segment swatch--abstain" style="--value: 8"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 2"></span></div>
+    <div class="bars__hour" title="17 h: 55 pedidos"><span class="bars__segment swatch--answered" style="--value: 32"></span><span class="bars__segment swatch--partial" style="--value: 5"></span><span class="bars__segment swatch--abstain" style="--value: 14"></span><span class="bars__segment swatch--failed" style="--value: 1"></span><span class="bars__segment swatch--skipped" style="--value: 3"></span></div>
+    <div class="bars__hour" title="18 h: 43 pedidos"><span class="bars__segment swatch--answered" style="--value: 27"></span><span class="bars__segment swatch--partial" style="--value: 4"></span><span class="bars__segment swatch--abstain" style="--value: 10"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 2"></span></div>
+    <div class="bars__hour" title="19 h: 50 pedidos"><span class="bars__segment swatch--answered" style="--value: 30"></span><span class="bars__segment swatch--partial" style="--value: 4"></span><span class="bars__segment swatch--abstain" style="--value: 12"></span><span class="bars__segment swatch--failed" style="--value: 1"></span><span class="bars__segment swatch--skipped" style="--value: 3"></span></div>
+    <div class="bars__hour" title="20 h: 22 pedidos"><span class="bars__segment swatch--answered" style="--value: 14"></span><span class="bars__segment swatch--partial" style="--value: 2"></span><span class="bars__segment swatch--abstain" style="--value: 5"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 1"></span></div>
+    <div class="bars__hour" title="21 h: 28 pedidos"><span class="bars__segment swatch--answered" style="--value: 17"></span><span class="bars__segment swatch--partial" style="--value: 2"></span><span class="bars__segment swatch--abstain" style="--value: 7"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 2"></span></div>
+    <div class="bars__hour" title="22 h: 38 pedidos"><span class="bars__segment swatch--answered" style="--value: 23"></span><span class="bars__segment swatch--partial" style="--value: 3"></span><span class="bars__segment swatch--abstain" style="--value: 9"></span><span class="bars__segment swatch--failed" style="--value: 1"></span><span class="bars__segment swatch--skipped" style="--value: 2"></span></div>
+    <div class="bars__hour" title="23 h: 25 pedidos"><span class="bars__segment swatch--answered" style="--value: 16"></span><span class="bars__segment swatch--partial" style="--value: 2"></span><span class="bars__segment swatch--abstain" style="--value: 6"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 1"></span></div>
+    <div class="bars__hour" title="00 h: 25 pedidos"><span class="bars__segment swatch--answered" style="--value: 15"></span><span class="bars__segment swatch--partial" style="--value: 3"></span><span class="bars__segment swatch--abstain" style="--value: 6"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 1"></span></div>
+    <div class="bars__hour" title="01 h: 12 pedidos"><span class="bars__segment swatch--answered" style="--value: 8"></span><span class="bars__segment swatch--partial" style="--value: 1"></span><span class="bars__segment swatch--abstain" style="--value: 2"></span><span class="bars__segment swatch--failed" style="--value: 0"></span><span class="bars__segment swatch--skipped" style="--value: 1"></span></div>
+  </div>
+  <ul class="bars__labels" aria-hidden="true">
+    <li>02</li><li>03</li><li>04</li><li>05</li><li>06</li><li>07</li><li>08</li><li>09</li><li>10</li><li>11</li><li>12</li><li>13</li><li>14</li><li>15</li><li>16</li><li>17</li><li>18</li><li>19</li><li>20</li><li>21</li><li>22</li><li>23</li><li>00</li><li>01</li>
+  </ul>
+  <div class="visually-hidden">
+  <table>
+    <caption>Pedidos por hora, últimas 24 horas</caption>
+    <thead><tr><th scope="col">Hora</th><th scope="col">Respondidas</th><th scope="col">Parciais</th><th scope="col">Sem decisão</th><th scope="col">Falhas</th><th scope="col">Não enviadas</th><th scope="col">Total</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">02</th><td>9</td><td>1</td><td>4</td><td>0</td><td>1</td><td>15</td></tr>
+      <tr><th scope="row">03</th><td>6</td><td>1</td><td>2</td><td>0</td><td>0</td><td>9</td></tr>
+      <tr><th scope="row">04</th><td>2</td><td>0</td><td>1</td><td>0</td><td>0</td><td>3</td></tr>
+      <tr><th scope="row">05</th><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th scope="row">06</th><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+      <tr><th scope="row">07</th><td>1</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td></tr>
+      <tr><th scope="row">08</th><td>4</td><td>1</td><td>2</td><td>0</td><td>1</td><td>8</td></tr>
+      <tr><th scope="row">09</th><td>12</td><td>2</td><td>5</td><td>0</td><td>1</td><td>20</td></tr>
+      <tr><th scope="row">10</th><td>18</td><td>3</td><td>7</td><td>1</td><td>2</td><td>31</td></tr>
+      <tr><th scope="row">11</th><td>22</td><td>3</td><td>9</td><td>0</td><td>2</td><td>36</td></tr>
+      <tr><th scope="row">12</th><td>19</td><td>2</td><td>8</td><td>0</td><td>1</td><td>30</td></tr>
+      <tr><th scope="row">13</th><td>25</td><td>4</td><td>11</td><td>1</td><td>2</td><td>43</td></tr>
+      <tr><th scope="row">14</th><td>28</td><td>5</td><td>10</td><td>0</td><td>2</td><td>45</td></tr>
+      <tr><th scope="row">15</th><td>24</td><td>4</td><td>9</td><td>1</td><td>1</td><td>39</td></tr>
+      <tr><th scope="row">16</th><td>21</td><td>3</td><td>8</td><td>0</td><td>2</td><td>34</td></tr>
+      <tr><th scope="row">17</th><td>32</td><td>5</td><td>14</td><td>1</td><td>3</td><td>55</td></tr>
+      <tr><th scope="row">18</th><td>27</td><td>4</td><td>10</td><td>0</td><td>2</td><td>43</td></tr>
+      <tr><th scope="row">19</th><td>30</td><td>4</td><td>12</td><td>1</td><td>3</td><td>50</td></tr>
+      <tr><th scope="row">20</th><td>14</td><td>2</td><td>5</td><td>0</td><td>1</td><td>22</td></tr>
+      <tr><th scope="row">21</th><td>17</td><td>2</td><td>7</td><td>0</td><td>2</td><td>28</td></tr>
+      <tr><th scope="row">22</th><td>23</td><td>3</td><td>9</td><td>1</td><td>2</td><td>38</td></tr>
+      <tr><th scope="row">23</th><td>16</td><td>2</td><td>6</td><td>0</td><td>1</td><td>25</td></tr>
+      <tr><th scope="row">00</th><td>15</td><td>3</td><td>6</td><td>0</td><td>1</td><td>25</td></tr>
+      <tr><th scope="row">01</th><td>8</td><td>1</td><td>2</td><td>0</td><td>1</td><td>12</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="bento__cell bento__cell--span-5 panel advanced" data-testid="advanced-panel" aria-labelledby="advanced-title">
+  <details data-testid="advanced-details">
+    <summary data-testid="advanced-summary" id="advanced-title">Avançado</summary>
+    <table class="compare">
+      <caption>Tokens do LLM: com JEV × JEV pausado</caption>
+      <thead><tr><th scope="col">Métrica</th><th scope="col">Com JEV</th><th scope="col">JEV pausado</th><th scope="col">Diferença</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Pedidos ao LLM medidos</th><td>184</td><td>92</td><td>—</td></tr>
+        <tr><th scope="row">Tokens de entrada / pedido</th><td>11 240</td><td>13 980</td><td>−19,6 %</td></tr>
+        <tr><th scope="row">…em cache</th><td>9 870</td><td>11 120</td><td>−11,2 %</td></tr>
+        <tr><th scope="row">Tokens de saída / pedido</th><td>612</td><td>741</td><td>−17,4 %</td></tr>
+        <tr><th scope="row">…de raciocínio</th><td>188</td><td>240</td><td>−21,7 %</td></tr>
+        <tr><th scope="row">Segundos / pedido</th><td>6,8</td><td>8,1</td><td>−16,0 %</td></tr>
+        <tr><th scope="row">Total de tokens de entrada</th><td>2,07 M</td><td>1,29 M</td><td>—</td></tr>
+        <tr><th scope="row">Total de tokens de saída</th><td>113 k</td><td>68 k</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </details>
+</section>
+
+<section class="bento__cell panel" aria-labelledby="requests-title">
+  <header class="section-head">
+    <h2 class="section-head__title" id="requests-title">Pedidos recebidos</h2>
+    <p class="section-head__note">Mais recentes primeiro. Filtros só mudam a lista exibida.</p>
+  </header>
+  <ul class="requests__filters" aria-label="Filtrar por resultado">
+    <li><button class="chip" type="button" aria-pressed="true" data-testid="outcome-filter-all">Todas</button></li>
+    <li><button class="chip" type="button" aria-pressed="false" data-testid="outcome-filter-answered">Respondidas</button></li>
+    <li><button class="chip" type="button" aria-pressed="false" data-testid="outcome-filter-partial">Parciais</button></li>
+    <li><button class="chip" type="button" aria-pressed="false" data-testid="outcome-filter-abstain">Sem decisão</button></li>
+    <li><button class="chip" type="button" aria-pressed="false" data-testid="outcome-filter-failed">Falhas</button></li>
+    <li><button class="chip" type="button" aria-pressed="false" data-testid="outcome-filter-skipped">Não enviadas</button></li>
+  </ul>
+  <table class="requests__table">
+    <thead>
+      <tr><th scope="col">Hora</th><th scope="col">Pedido</th><th scope="col">Pergunta</th><th scope="col">Resultado</th><th scope="col">Resposta do JEV</th><th scope="col">Confiança</th><th scope="col">Tempo</th><th scope="col">Tokens</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td data-label="Hora">19:21:29</td>
+        <td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__code">/master/decide</code></td>
+        <td data-label="Pergunta"><code class="requests__code">direction</code></td>
+        <td data-label="Resultado"><span class="swatch swatch--answered" aria-hidden="true"></span> Respondida</td>
+        <td data-label="Resposta do JEV"><code class="requests__code">on_track</code></td>
+        <td data-label="Confiança">0,91</td>
+        <td data-label="Tempo">279 ms</td>
+        <td data-label="Tokens">3&nbsp;313</td>
+      </tr>
+      <tr>
+        <td data-label="Hora">19:21:12</td>
+        <td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__code">/master/decide</code></td>
+        <td data-label="Pergunta"><code class="requests__code">risk</code></td>
+        <td data-label="Resultado"><span class="swatch swatch--answered" aria-hidden="true"></span> Respondida</td>
+        <td data-label="Resposta do JEV"><code class="requests__code">routine</code></td>
+        <td data-label="Confiança">0,97</td>
+        <td data-label="Tempo">270 ms</td>
+        <td data-label="Tokens">1&nbsp;029</td>
+      </tr>
+      <tr>
+        <td data-label="Hora"><button class="requests__expand" type="button" aria-expanded="true" aria-controls="request-detail" data-testid="request-expand">19:20:53</button></td>
+        <td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__code">/master/decide</code></td>
+        <td data-label="Pergunta"><code class="requests__code">completion</code></td>
+        <td data-label="Resultado"><span class="swatch swatch--abstain" aria-hidden="true"></span> Sem decisão</td>
+        <td data-label="Resposta do JEV">0,46 &lt; limiar 0,65</td>
+        <td data-label="Confiança">0,46</td>
+        <td data-label="Tempo">246 ms</td>
+        <td data-label="Tokens">2&nbsp;185</td>
+      </tr>
+      <tr class="requests__detail" id="request-detail">
+        <td colspan="8">
+          <dl class="detail">
+            <div><dt>Cliente e modelo</dt><dd>hook · jev-1.13.0</dd></div>
+            <div><dt>Limiar exigido</dt><dd>0,65</dd></div>
+            <div><dt>Chamadas e latência</dt><dd>1 chamada · 246 ms</dd></div>
+            <div><dt>Tokens</dt><dd>2&nbsp;185 entrada · 60 saída</dd></div>
+            <div><dt>Pergunta</dt><dd>completion · tipo Choice</dd></div>
+            <div><dt>Opções</dt><dd><ul><li>done_verified</li><li>done_unverified</li><li>not_done</li><li>needs_user</li><li>abstain</li></ul></dd></div>
+            <div><dt>Resposta</dt><dd><code class="requests__code">abstain</code> · confiança 0,46</dd></div>
+          </dl>
+        </td>
+      </tr>
+      <tr>
+        <td data-label="Hora">19:20:40</td>
+        <td data-label="Pedido"><span class="requests__kind">Contexto</span><code class="requests__code">/master/context</code></td>
+        <td data-label="Pergunta"><code class="requests__code">selection</code></td>
+        <td data-label="Resultado"><span class="swatch swatch--answered" aria-hidden="true"></span> Respondida</td>
+        <td data-label="Resposta do JEV"><code class="requests__code">keep_score</code></td>
+        <td data-label="Confiança">0,97</td>
+        <td data-label="Tempo">328 ms</td>
+        <td data-label="Tokens">1&nbsp;285</td>
+      </tr>
+      <tr>
+        <td data-label="Hora">19:20:35</td>
+        <td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__code">/master/decide</code></td>
+        <td data-label="Pergunta"><code class="requests__code">A_per_run_cap … F_reduce_baseline (6)</code></td>
+        <td data-label="Resultado"><span class="swatch swatch--partial" aria-hidden="true"></span> Parcial</td>
+        <td data-label="Resposta do JEV">4 de 6 respondidas</td>
+        <td data-label="Confiança">0,58</td>
+        <td data-label="Tempo">313 ms</td>
+        <td data-label="Tokens">1&nbsp;328</td>
+      </tr>
+      <tr>
+        <td data-label="Hora">19:19:58</td>
+        <td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__code">/master/decide</code></td>
+        <td data-label="Pergunta"><code class="requests__code">verification</code></td>
+        <td data-label="Resultado"><span class="swatch swatch--answered" aria-hidden="true"></span> Respondida</td>
+        <td data-label="Resposta do JEV">sim 0,94</td>
+        <td data-label="Confiança">—</td>
+        <td data-label="Tempo">301 ms</td>
+        <td data-label="Tokens">671</td>
+      </tr>
+      <tr>
+        <td data-label="Hora">19:18:44</td>
+        <td data-label="Pedido"><span class="requests__kind">Decisão</span><code class="requests__code">/master/decide</code></td>
+        <td data-label="Pergunta"><code class="requests__code">risk</code></td>
+        <td data-label="Resultado"><span class="swatch swatch--failed" aria-hidden="true"></span> Falha</td>
+        <td data-label="Resposta do JEV">tempo esgotado (8 s)</td>
+        <td data-label="Confiança">—</td>
+        <td data-label="Tempo">8&nbsp;000 ms</td>
+        <td data-label="Tokens">0</td>
+      </tr>
+      <tr>
+        <td data-label="Hora">19:17:02</td>
+        <td data-label="Pedido"><span class="requests__kind">Escolha de ferramenta</span><code class="requests__code">/v1/chat/completions</code></td>
+        <td data-label="Pergunta">—</td>
+        <td data-label="Resultado"><span class="swatch swatch--skipped" aria-hidden="true"></span> Não enviada</td>
+        <td data-label="Resposta do JEV">pedido sem ferramentas</td>
+        <td data-label="Confiança">—</td>
+        <td data-label="Tempo">0 ms</td>
+        <td data-label="Tokens">0</td>
+      </tr>
+    </tbody>
+  </table>
+  <button class="control" type="button" data-testid="show-more">Mostrar mais 30</button>
+</section>
+
+</div>
+<footer class="footer">Somente leitura: nenhum controle desta página altera o gateway. Mock C · Glide board, dados de exemplo.</footer>
+</main>
+<script>
+  const root = document.documentElement;
+  const toggle = document.querySelector('[data-testid="theme-toggle"]');
+  toggle.addEventListener('click', () => {
+    const dark = root.dataset.theme !== 'dark';
+    root.dataset.theme = dark ? 'dark' : 'light';
+    toggle.setAttribute('aria-pressed', String(dark));
+  });
+</script>
+</body>
+</html>

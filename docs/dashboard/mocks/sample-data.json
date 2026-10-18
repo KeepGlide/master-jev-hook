@@ -1,0 +1,82 @@
+{
+  "window": "últimas 24 horas",
+  "status": { "state": "online", "model": "jev-1.13.0", "provider": "TypeSafe", "client": "hook", "upFor": "3 h 12 min", "lastRequestAgo": "4 s", "minConfidence": 0.65 },
+  "tiles": {
+    "received": 612, "perHour": 25.5,
+    "answered": 373, "partial": 55, "abstain": 147, "failed": 6, "skipped": 31,
+    "meanConfidence": 0.84, "minConfidence": 0.12,
+    "latencyMeanMs": 302, "latencyP95Ms": 391,
+    "tokensIn": 822000, "tokensOut": 36000
+  },
+  "hourly": [
+    { "hour": "02", "answered": 9, "partial": 1, "abstain": 4, "failed": 0, "skipped": 1 },
+    { "hour": "03", "answered": 6, "partial": 1, "abstain": 2, "failed": 0, "skipped": 0 },
+    { "hour": "04", "answered": 2, "partial": 0, "abstain": 1, "failed": 0, "skipped": 0 },
+    { "hour": "05", "answered": 0, "partial": 0, "abstain": 0, "failed": 0, "skipped": 0 },
+    { "hour": "06", "answered": 0, "partial": 0, "abstain": 0, "failed": 0, "skipped": 0 },
+    { "hour": "07", "answered": 1, "partial": 0, "abstain": 0, "failed": 0, "skipped": 0 },
+    { "hour": "08", "answered": 4, "partial": 1, "abstain": 2, "failed": 0, "skipped": 1 },
+    { "hour": "09", "answered": 12, "partial": 2, "abstain": 5, "failed": 0, "skipped": 1 },
+    { "hour": "10", "answered": 18, "partial": 3, "abstain": 7, "failed": 1, "skipped": 2 },
+    { "hour": "11", "answered": 22, "partial": 3, "abstain": 9, "failed": 0, "skipped": 2 },
+    { "hour": "12", "answered": 19, "partial": 2, "abstain": 8, "failed": 0, "skipped": 1 },
+    { "hour": "13", "answered": 25, "partial": 4, "abstain": 11, "failed": 1, "skipped": 2 },
+    { "hour": "14", "answered": 28, "partial": 5, "abstain": 10, "failed": 0, "skipped": 2 },
+    { "hour": "15", "answered": 24, "partial": 4, "abstain": 9, "failed": 1, "skipped": 1 },
+    { "hour": "16", "answered": 21, "partial": 3, "abstain": 8, "failed": 0, "skipped": 2 },
+    { "hour": "17", "answered": 32, "partial": 5, "abstain": 14, "failed": 1, "skipped": 3 },
+    { "hour": "18", "answered": 27, "partial": 4, "abstain": 10, "failed": 0, "skipped": 2 },
+    { "hour": "19", "answered": 30, "partial": 4, "abstain": 12, "failed": 1, "skipped": 3 },
+    { "hour": "20", "answered": 14, "partial": 2, "abstain": 5, "failed": 0, "skipped": 1 },
+    { "hour": "21", "answered": 17, "partial": 2, "abstain": 7, "failed": 0, "skipped": 2 },
+    { "hour": "22", "answered": 23, "partial": 3, "abstain": 9, "failed": 1, "skipped": 2 },
+    { "hour": "23", "answered": 16, "partial": 2, "abstain": 6, "failed": 0, "skipped": 1 },
+    { "hour": "00", "answered": 15, "partial": 3, "abstain": 6, "failed": 0, "skipped": 1 },
+    { "hour": "01", "answered": 8, "partial": 1, "abstain": 2, "failed": 0, "skipped": 1 }
+  ],
+  "confidenceHistogram": { "bins": ["0,0", "0,1", "0,2", "0,3", "0,4", "0,5", "0,6", "0,7", "0,8", "0,9"], "counts": [6, 9, 14, 22, 31, 40, 38, 61, 118, 236], "threshold": 0.65 },
+  "weights": {
+    "thresholds": [
+      { "risk": "low", "label": "baixo", "threshold": 0.65, "share": 0.70, "accepted": 0.71 },
+      { "risk": "medium", "label": "médio", "threshold": 0.80, "share": 0.28, "accepted": 0.67 },
+      { "risk": "high", "label": "alto", "threshold": 0.90, "share": 0.02, "accepted": 0.55 }
+    ],
+    "scoreScales": [
+      { "levels": 3, "passRate": 0.94, "n": 792 },
+      { "levels": 4, "passRate": 0.37, "n": 83 },
+      { "levels": 5, "passRate": 0.15, "n": 735 }
+    ],
+    "scaleAdvice": "Use 3 níveis descritos como situações; escalas de 5 níveis abstêm 85 % das vezes.",
+    "questionTypes": [ { "type": "Choice", "share": 0.62 }, { "type": "Score", "share": 0.30 }, { "type": "Noul", "share": 0.08 } ],
+    "composite": { "source": "jev_score · 13:03", "weights": [ { "id": "clareza", "weight": 0.30, "score": 2.4, "status": "ok" }, { "id": "completude", "weight": 0.30, "score": 2.1, "status": "ok" }, { "id": "segurança", "weight": 0.40, "score": 3.6, "status": "ok" } ], "levels": 5, "value": 0.62, "status": "ok" },
+    "abstainedScoreNote": "Uma Score abstida mantém o score esperado (provisório, ±1 nível); o ranking do jev_rank ordena todas, as abstidas em abstained."
+  },
+  "rows": [
+    { "time": "19:21:29", "kind": "Decisão", "path": "/master/decide", "question": "direction", "outcome": "answered", "answer": "on_track", "confidence": 0.91, "latencyMs": 279, "tokens": 3313 },
+    { "time": "19:21:12", "kind": "Decisão", "path": "/master/decide", "question": "risk", "outcome": "answered", "answer": "routine", "confidence": 0.97, "latencyMs": 270, "tokens": 1029 },
+    { "time": "19:20:53", "kind": "Decisão", "path": "/master/decide", "question": "completion", "outcome": "abstain", "answer": "0,46 < limiar 0,65", "confidence": 0.46, "latencyMs": 246, "tokens": 2185 },
+    { "time": "19:20:40", "kind": "Contexto", "path": "/master/context", "question": "selection", "outcome": "answered", "answer": "keep_score", "confidence": 0.97, "latencyMs": 328, "tokens": 1285 },
+    { "time": "19:20:35", "kind": "Decisão", "path": "/master/decide", "question": "A_per_run_cap … F_reduce_baseline (6)", "outcome": "partial", "answer": "4 de 6 respondidas", "confidence": 0.58, "latencyMs": 313, "tokens": 1328 },
+    { "time": "19:19:58", "kind": "Decisão", "path": "/master/decide", "question": "verification", "outcome": "answered", "answer": "sim 0,94", "confidence": null, "latencyMs": 301, "tokens": 671 },
+    { "time": "19:18:44", "kind": "Decisão", "path": "/master/decide", "question": "risk", "outcome": "failed", "answer": "tempo esgotado (8 s)", "confidence": null, "latencyMs": 8000, "tokens": 0 },
+    { "time": "19:17:02", "kind": "Escolha de ferramenta", "path": "/v1/chat/completions", "question": "—", "outcome": "skipped", "answer": "pedido sem ferramentas", "confidence": null, "latencyMs": 0, "tokens": 0 }
+  ],
+  "expandedRow": {
+    "time": "19:20:53", "path": "/master/decide", "kind": "Decisão", "client": "hook", "model": "jev-1.13.0",
+    "thresholdRequired": 0.65, "calls": 1, "tokens": "2 185 entrada · 60 saída", "latency": "246 ms",
+    "questions": [ { "id": "completion", "type": "Choice", "options": ["done_verified", "done_unverified", "not_done", "needs_user", "abstain"], "answer": "abstain", "confidence": 0.46 } ]
+  },
+  "compare": {
+    "columns": ["Com JEV", "JEV pausado", "Diferença"],
+    "rows": [
+      ["Pedidos ao LLM medidos", "184", "92", "—"],
+      ["Tokens de entrada / pedido", "11 240", "13 980", "−19,6 %"],
+      ["…em cache", "9 870", "11 120", "−11,2 %"],
+      ["Tokens de saída / pedido", "612", "741", "−17,4 %"],
+      ["…de raciocínio", "188", "240", "−21,7 %"],
+      ["Segundos / pedido", "6,8", "8,1", "−16,0 %"],
+      ["Total de tokens de entrada", "2,07 M", "1,29 M", "—"],
+      ["Total de tokens de saída", "113 k", "68 k", "—"]
+    ]
+  }
+}
