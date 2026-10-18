@@ -44,6 +44,7 @@ export function dashboardRoutes(config: Config, events: EventLog, routing: Routi
         jevModel: config.jevModel,
         jevProvider: config.jevProvider,
         minConfidence: config.minConfidence,
+        riskThresholds: config.riskThresholds,
         routing: routing.get(),
         // Sequence numbers restart with the process: a page that sees this change starts over.
         startedAt,

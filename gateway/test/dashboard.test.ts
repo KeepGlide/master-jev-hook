@@ -76,6 +76,9 @@ describe("GET /dashboard/events", () => {
     expect(events[0]!.status).toBeUndefined();
     expect(events[4]!.jev).toBeUndefined();
     expect(router).toMatchObject({ client: "standalone", upstream: "https://llm.test/v1", jevModel: "jev-1.13.0", recorded: 7 });
+    const { low, medium, high } = router.riskThresholds as { low: number; medium: number; high: number };
+    expect(low).toBeLessThanOrEqual(medium);
+    expect(medium).toBeLessThanOrEqual(high);
   });
 
   it("reports a hint for requests that can only be nudged", async () => {

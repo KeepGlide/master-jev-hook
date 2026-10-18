@@ -223,6 +223,21 @@ Copied from the Ask owner list of `r4/fixlist.md`, as written:
 9. The Online pill draws a dot and a check that both say "online": keep both, or only the dot?
 10. Brand touches (tagline colour, fork glyph in the status band, new icons, teal brand line): one brand pass, or leave them as they are.
 
+### Answered by the owner on 2026-10-18
+
+Filed in the Askaway inbox, one question per item, and answered from the panel. What shipped (page at `gateway/src/dashboard.html` unless noted):
+
+1. **B.** The chip reads "66% of kept" / "66% dos mantidos" while the 1,000-request buffer is full, and "of total" / "do total" otherwise.
+2. **A.** The thresholds chip is hidden under 480 px by CSS (`.chip--thresholds`); it stays in the DOM.
+3. **A.** The gateway sends `riskThresholds` in the router payload of `/dashboard/events` (`gateway/src/dashboard.ts`, asserted in `gateway/test/dashboard.test.ts`); the chip and the confidence note print those values and fall back to the floor alone.
+4. **A.** In the dark theme only, Partial segments, legend swatches and the share bar carry a diagonal stripe over their tone (`--partial-pattern`); the light theme is unchanged.
+5. **A.** The hourly chart gets 12 px of top room (`.bars--hourly`); the confidence chart is unchanged.
+6. **C.** The band stays red until the next success and says since when: "N requests failed since HH:MM" / "N falhas desde HH:MM", counting the failures since the last answered, partial or abstained request.
+7. **A.** The "started at HH:MM; bars before that have no data" note shows under the hourly chart when the earliest shown router started inside the window and no kept-window note applies.
+8. **A.** EN spelling is American ("colors"); the confidence title reads "How sure the JEV was" / "Quanta certeza o JEV teve"; both hero kickers stay "JEV decisions".
+9. **A.** The Online pill keeps its dot and its check.
+10. **C.** Left as is; the brand pass is scheduled as its own session.
+
 ## 6. Round-4 ship verdict per group
 
 | Group | Verdict | Conditions (round-4 fix IDs) |

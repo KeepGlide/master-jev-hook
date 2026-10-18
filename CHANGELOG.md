@@ -16,6 +16,11 @@ versions follow SemVer and the gateway's `package.json`. The measurements behind
   rule "errors and harmonizing changes only": regressions, copy in EN and pt-BR, a11y, honest data scope, and offline
   and stale states. The approved navy aurora E2 look was deliberately not changed. Record:
   [`docs/dashboard/gauntlet.md`](docs/dashboard/gauntlet.md).
+- **The ten owner questions of the gauntlet are answered and shipped.** The risk thresholds now travel in the
+  `/dashboard/events` router payload (`riskThresholds`) and the page prints them instead of fixed text; the hero chip
+  says "of kept" while the buffer is full; Partial is striped in the dark theme; the red band says since when it is
+  red; the hourly chart notes the gateway's start time and keeps 12 px of top room; the thresholds chip hides under
+  480 px; the confidence title and the EN spelling are revised. Record: gauntlet.md section 5.
 
 ### Fixed
 
