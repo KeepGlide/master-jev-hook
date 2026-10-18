@@ -11,6 +11,11 @@ versions follow SemVer and the gateway's `package.json`. The measurements behind
 - **The dashboard page now carries the KeepGlide "E2" look.** A light aurora wash, a dot field, a glide arc and a fork
   echo sit behind the page, the fork mark grows to 64 px, the Answered numeral and the ring use a teal-light accent,
   and the muted text and live dot gain contrast. Data behaviour is unchanged. Restart the gateway service to serve it.
+- **The dashboard went through a four-round critique gauntlet.** Twenty-five personas in five groups (designers, UI/UX,
+  product owners, marketing and advertising, leadership) reviewed the page, and 58 fixes were adopted under the owner's
+  rule "errors and harmonizing changes only": regressions, copy in EN and pt-BR, a11y, honest data scope, and offline
+  and stale states. The approved navy aurora E2 look was deliberately not changed. Record:
+  [`docs/dashboard/gauntlet.md`](docs/dashboard/gauntlet.md).
 
 ### Fixed
 
