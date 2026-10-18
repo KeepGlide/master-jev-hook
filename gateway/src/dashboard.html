@@ -48,10 +48,10 @@
   button:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .spacer { flex: 1; }
   .live { color: var(--muted); font-size: 12px; }
-  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
-  .seg button { font: inherit; font-size: 12px; color: var(--ink-2); background: none; border: 0; padding: 5px 10px; cursor: pointer; }
-  .seg button:hover { background: var(--wash); }
-  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+  .segment-control { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
+  .segment-control button { font: inherit; font-size: 12px; color: var(--ink-2); background: none; border: 0; padding: 5px 10px; cursor: pointer; }
+  .segment-control button:hover { background: var(--wash); }
+  .segment-control button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; box-shadow: 0 3px 14px var(--shadow); }
   .cols { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
   .note { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
@@ -60,34 +60,34 @@
   .status { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 10px 16px 12px; font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--grid); background: var(--wash); }
   .status .pill { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); }
   .status .pill::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--state); }
-  .st-ok { --state: var(--answered); } .st-paused { --state: var(--abstain); } .st-failing, .st-offline { --state: var(--failed); }
+  .status--ok { --state: var(--answered); } .status--paused { --state: var(--abstain); } .status--failing, .status--offline { --state: var(--failed); }
 
   .tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
   .tile { padding: 12px 14px; border-top: 3px solid var(--c, var(--accent)); }
   .tile .label { font-size: 12px; color: var(--ink-2); }
   .tile .value { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }
   .tile .value small { font-size: 14px; font-weight: 500; color: var(--ink-2); margin-left: 6px; }
-  .tile .sub { font-size: 12px; color: var(--muted); }
+  .tile .subtext { font-size: 12px; color: var(--muted); }
 
-  .o-answered { --c: var(--answered); } .o-partial { --c: var(--partial); } .o-abstain { --c: var(--abstain); }
-  .o-failed { --c: var(--failed); } .o-skipped { --c: var(--skipped); }
+  .outcome--answered { --c: var(--answered); } .outcome--partial { --c: var(--partial); } .outcome--abstain { --c: var(--abstain); }
+  .outcome--failed { --c: var(--failed); } .outcome--skipped { --c: var(--skipped); }
   .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; background: var(--c); }
   .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 10px 0 0; font-size: 12px; color: var(--ink-2); }
   .share { display: flex; gap: 2px; height: 14px; border-radius: 4px; overflow: hidden; background: var(--wash); margin-top: 12px; }
   .share span { min-width: 2px; background: var(--c); }
 
   .bars { position: relative; display: flex; align-items: flex-end; gap: 2px; height: 120px; border-bottom: 1px solid var(--axis); margin-top: 14px; }
-  .bars .col { flex: 1; height: 100%; display: flex; flex-direction: column-reverse; align-items: center; gap: 1px; }
-  .bars .col span { width: 100%; max-width: 28px; background: var(--c); }
-  .bars .col span:last-child { border-radius: 3px 3px 0 0; }
-  .bars .col:hover, .bars .col:focus-visible { background: var(--wash); }
+  .bars .bars__column { flex: 1; height: 100%; display: flex; flex-direction: column-reverse; align-items: center; gap: 1px; }
+  .bars .bars__column span { width: 100%; max-width: 28px; background: var(--c); }
+  .bars .bars__column span:last-child { border-radius: 3px 3px 0 0; }
+  .bars .bars__column:hover, .bars .bars__column:focus-visible { background: var(--wash); }
   .bars .mark { position: absolute; top: -4px; bottom: 0; border-left: 2px dashed var(--ink-2); pointer-events: none; }
   .bars .mark b { position: absolute; top: -14px; left: 4px; font-size: 11px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
-  #confidence { margin-top: 26px; }
+  .bars--confidence { margin-top: 26px; }
   .axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 4px; }
-  #tip { position: fixed; z-index: 2; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); display: none; }
-  #tip div { display: flex; gap: 12px; justify-content: space-between; color: var(--ink-2); }
-  #tip b { color: var(--ink); }
+  .tooltip { position: fixed; z-index: 2; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); display: none; }
+  .tooltip div { display: flex; gap: 12px; justify-content: space-between; color: var(--ink-2); }
+  .tooltip b { color: var(--ink); }
 
   .toggle-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 16px; }
   .toggle-bar .note { margin: 0; flex: 1 1 220px; }
@@ -111,13 +111,13 @@
   th { color: var(--ink-2); font-weight: 600; font-size: 12px; border-top: 0; white-space: nowrap; }
   th:first-child, td:first-child { padding-left: 16px; }
   th:last-child, td:last-child { padding-right: 16px; }
-  td.num, th.num { text-align: right; white-space: nowrap; }
+  td.numeric, th.numeric { text-align: right; white-space: nowrap; }
   td.nowrap { white-space: nowrap; }
   tr.row { cursor: pointer; }
   tr.row:hover td, tr.row.open td { background: var(--wash); }
   tr.row td:first-child::before { content: "▸"; display: inline-block; width: 14px; color: var(--muted); }
   tr.row.open td:first-child::before { content: "▾"; }
-  .sub { font-size: 11.5px; color: var(--muted); }
+  .subtext { font-size: 11.5px; color: var(--muted); }
   .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--ink); }
   .badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
   code, .mono { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -128,13 +128,13 @@
   .meter .limit { position: absolute; top: -3px; bottom: -3px; border-left: 2px solid var(--ink-2); }
   .meter b { font-weight: 600; min-width: 34px; text-align: right; }
   tr.detail td { background: var(--plane); padding: 4px 16px 16px 38px; }
-  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 12.5px; }
-  .kv dt { color: var(--ink-2); }
-  .kv dd { margin: 0; overflow-wrap: anywhere; }
-  .q { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-top: 8px; background: var(--surface); }
-  .opts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
-  .opts span { font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; border: 1px solid var(--border); border-radius: 4px; padding: 0 6px; color: var(--ink-2); }
-  .opts span.chosen { border-color: var(--answered); color: var(--ink); font-weight: 700; }
+  .detail-list { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; font-size: 12.5px; }
+  .detail-list dt { color: var(--ink-2); }
+  .detail-list dd { margin: 0; overflow-wrap: anywhere; }
+  .question { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-top: 8px; background: var(--surface); }
+  .question__options { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .question__options span { font: 11.5px ui-monospace, SFMono-Regular, Menlo, monospace; border: 1px solid var(--border); border-radius: 4px; padding: 0 6px; color: var(--ink-2); }
+  .question__options span.chosen { border-color: var(--answered); color: var(--ink); font-weight: 700; }
   pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin: 4px 0 0; max-height: 360px; overflow: auto; }
 
   details.advanced > summary { cursor: pointer; font-weight: 650; }
@@ -162,9 +162,9 @@
       <span class="spacer"></span>
       <span class="live" id="live"></span>
       <div class="controls">
-        <div class="seg" id="clients" role="group"></div>
-        <div class="seg" id="langs" role="group"></div>
-        <div class="seg" id="themes" role="group"></div>
+        <div class="segment-control" id="clients" role="group"></div>
+        <div class="segment-control" id="langs" role="group"></div>
+        <div class="segment-control" id="themes" role="group"></div>
       </div>
     </div>
     <div class="status" id="status" aria-live="polite"></div>
@@ -183,7 +183,7 @@
       <h2 data-i18n="confTitle"></h2>
       <p class="note" id="conf-note"></p>
       <div class="legend" id="conf-legend"></div>
-      <div class="bars" id="confidence"></div>
+      <div class="bars bars--confidence" id="confidence"></div>
       <div class="axis" id="conf-axis"></div>
     </div>
   </section>
@@ -217,7 +217,7 @@
     <div class="scroll"><table class="compare" id="compare"></table></div>
   </details>
 </main>
-<div id="tip" role="status"></div>
+<div class="tooltip" id="tip" role="status"></div>
 
 <script>
 "use strict";
@@ -581,7 +581,7 @@ function renderStatus(now) {
     const last = events.at(-1);
     return [
       index > 0 && h("span", { style: "flex-basis:100%;height:0" }),
-      h("span", { class: `pill st-${state}` }, `${router?.client ?? "gateway"} :${source.port} · ${label}`),
+      h("span", { class: `pill status--${state}` }, `${router?.client ?? "gateway"} :${source.port} · ${label}`),
       h("span", {}, tr.window),
       why && h("span", {}, why),
       router && h("span", {}, tr.model(router.jevModel, router.jevProvider)),
@@ -609,8 +609,8 @@ function renderTiles(events, now) {
   const hours = Math.max(1, Math.min(24, (now - oldest) / HOUR));
 
   const tile = (cls, label, value, share, sub) => h("div", { class: `card tile ${cls}` },
-    h("div", { class: "label" }, label), h("div", { class: "value" }, value, share && h("small", {}, share)), h("div", { class: "sub" }, sub));
-  const outcomeTile = (name, label, sub) => tile(`o-${name}`, label, int(count[name]), pct(count[name], events.length), sub);
+    h("div", { class: "label" }, label), h("div", { class: "value" }, value, share && h("small", {}, share)), h("div", { class: "subtext" }, sub));
+  const outcomeTile = (name, label, sub) => tile(`outcome--${name}`, label, int(count[name]), pct(count[name], events.length), sub);
   $("tiles").replaceChildren(...kids([
     tile("", tr.tReceived, int(events.length), "", tr.tReceivedSub(dec(events.length / hours))),
     outcomeTile("answered", tr.tAnswered, tr.outcomeLong.answered),
@@ -638,8 +638,8 @@ const hideTip = () => ($("tip").style.display = "none");
 
 /** A column of stacked segments, one per outcome, with a tooltip. */
 function stackColumn(counts, peak, title, ariaLabel) {
-  const col = h("div", { class: "col", tabindex: "0", "aria-label": ariaLabel },
-    ...OUTCOMES.filter((name) => counts[name]).map((name) => h("span", { class: `o-${name}`, style: `height:${(100 * counts[name]) / peak}%` })));
+  const col = h("div", { class: "bars__column", tabindex: "0", "aria-label": ariaLabel },
+    ...OUTCOMES.filter((name) => counts[name]).map((name) => h("span", { class: `outcome--${name}`, style: `height:${(100 * counts[name]) / peak}%` })));
   const total = OUTCOMES.reduce((sum, name) => sum + (counts[name] ?? 0), 0);
   const show = () => showTip(col, [[title, int(total)], ...OUTCOMES.filter((name) => counts[name]).map((name) => [t().outcome[name], int(counts[name])])]);
   col.addEventListener("pointerenter", show);
@@ -654,7 +654,7 @@ function renderHourly(events, now) {
   const counts = Object.fromEntries(OUTCOMES.map((name) => [name, 0]));
   for (const event of events) counts[outcome(event)]++;
   const present = OUTCOMES.filter((name) => counts[name]);
-  $("share").replaceChildren(...present.map((name) => h("span", { class: `o-${name}`, style: `flex:${counts[name]}`, title: `${tr.outcome[name]}: ${counts[name]}` })));
+  $("share").replaceChildren(...present.map((name) => h("span", { class: `outcome--${name}`, style: `flex:${counts[name]}`, title: `${tr.outcome[name]}: ${counts[name]}` })));
   $("legend").replaceChildren(...(present.length ? present : ["answered", "abstain", "failed"]).map((name) =>
     h("span", { title: tr.outcomeLong[name] }, h("i", { class: `dot o-${name}` }), `${tr.outcome[name]} `, h("b", {}, `${int(counts[name])} · ${pct(counts[name], events.length)}`))));
 
@@ -718,14 +718,14 @@ function answerCell(event) {
   const tr = t();
   const name = outcome(event);
   const list = answers(event);
-  if (name === "failed") return h("span", { class: "sub" }, event.context?.reason ?? event.reason ?? "");
-  if (name === "skipped") return h("span", { class: "sub" }, tr.reasons[reasonKey(event.reason ?? "")] ?? event.reason ?? "");
-  if (!event.context && event.mode === "passthrough" && name === "answered" && event.jev) return h("span", {}, h("span", { class: "answer mono" }, event.jev.choice), h("div", { class: "sub" }, tr.llmDecided(event.jev.choice)));
+  if (name === "failed") return h("span", { class: "subtext" }, event.context?.reason ?? event.reason ?? "");
+  if (name === "skipped") return h("span", { class: "subtext" }, tr.reasons[reasonKey(event.reason ?? "")] ?? event.reason ?? "");
+  if (!event.context && event.mode === "passthrough" && name === "answered" && event.jev) return h("span", {}, h("span", { class: "answer mono" }, event.jev.choice), h("div", { class: "subtext" }, tr.llmDecided(event.jev.choice)));
   const parts = list.map((a) => {
     const text = answerText(a);
     const prefix = list.length > 1 ? a.id + ": " : "";
     return text ? h("div", {}, prefix, h("span", { class: "answer mono" }, text))
-      : h("div", { class: "sub" }, prefix + tr.noAnswer + (a.confidence !== undefined && threshold(event) !== undefined ? ` (${tr.belowLimit(dec(a.confidence), dec(threshold(event)))})` : ""));
+      : h("div", { class: "subtext" }, prefix + tr.noAnswer + (a.confidence !== undefined && threshold(event) !== undefined ? ` (${tr.belowLimit(dec(a.confidence), dec(threshold(event)))})` : ""));
   });
   return parts.length ? parts : "–";
 }
@@ -755,22 +755,22 @@ function detail(event) {
     : event.jev ? [{ id: "tool", type: "choice", instructions: "", options: event.jev.shortlist ?? [] }] : [];
   const PLACEHOLDER = /text kept out of the dashboard/i;
   return h("div", {},
-    h("dl", { class: "kv" }, ...rows.flatMap(([label, ...value]) => [h("dt", {}, label), h("dd", {}, ...value)])),
+    h("dl", { class: "detail-list" }, ...rows.flatMap(([label, ...value]) => [h("dt", {}, label), h("dd", {}, ...value)])),
     questions.length && h("h3", {}, tr.dQuestions),
     ...questions.map((q) => {
       const a = byId[q.id];
       const chosen = a && a.status === "ok" ? a.choice : undefined;
-      return h("div", { class: "q" },
-        h("div", {}, h("code", {}, q.id), h("span", { class: "sub" }, ` · ${q.type}`),
-          a && h("span", {}, " → ", h("b", {}, answerText(a) ?? tr.noAnswer), a.confidence !== undefined ? h("span", { class: "sub" }, ` · ${tr.dConf} ${dec(a.confidence)}`) : undefined)),
-        q.instructions && !PLACEHOLDER.test(q.instructions) && h("div", { class: "sub" }, q.instructions),
-        q.options.length ? h("div", { class: "opts", "aria-label": tr.dOptions }, ...q.options.map((option) => h("span", { class: option === chosen ? "chosen" : undefined }, option)))
-          : h("div", { class: "sub" }, tr.dNoOptions));
+      return h("div", { class: "question" },
+        h("div", {}, h("code", {}, q.id), h("span", { class: "subtext" }, ` · ${q.type}`),
+          a && h("span", {}, " → ", h("b", {}, answerText(a) ?? tr.noAnswer), a.confidence !== undefined ? h("span", { class: "subtext" }, ` · ${tr.dConf} ${dec(a.confidence)}`) : undefined)),
+        q.instructions && !PLACEHOLDER.test(q.instructions) && h("div", { class: "subtext" }, q.instructions),
+        q.options.length ? h("div", { class: "question__options", "aria-label": tr.dOptions }, ...q.options.map((option) => h("span", { class: option === chosen ? "chosen" : undefined }, option)))
+          : h("div", { class: "subtext" }, tr.dNoOptions));
     }),
     h("h3", {}, tr.dText),
     context?.inspection ? [h("pre", {}, JSON.stringify(context.inspection.received, null, 2)), h("h3", {}, tr.dJevReq), h("pre", {}, JSON.stringify(context.inspection.requests, null, 2))]
       : h("p", { class: "note" }, tr.dNoText),
-    context && h("details", {}, h("summary", { class: "sub" }, tr.dRaw), h("pre", {}, JSON.stringify(context.workflow ?? context.assessments, null, 2))));
+    context && h("details", {}, h("summary", { class: "subtext" }, tr.dRaw), h("pre", {}, JSON.stringify(context.workflow ?? context.assessments, null, 2))));
 }
 
 function renderFilters(events) {
@@ -783,7 +783,7 @@ function renderFilters(events) {
 
 function renderRows(events, now) {
   const tr = t();
-  $("rows-head").replaceChildren(...tr.cols.map((label, index) => h("th", { class: index >= 6 ? "num" : undefined }, label)));
+  $("rows-head").replaceChildren(...tr.cols.map((label, index) => h("th", { class: index >= 6 ? "numeric" : undefined }, label)));
   const matching = events.filter((event) => view.outcome === "all" || outcome(event) === view.outcome).reverse();
   const shown = matching.slice(0, view.limit);
   const rest = matching.length - shown.length;
@@ -799,13 +799,13 @@ function renderRows(events, now) {
     const ids = questionIds(event);
     const row = h("tr", { class: `row${open ? " open" : ""}`, tabindex: "0", "aria-expanded": String(open) },
       h("td", { class: "nowrap" }, clock(at(event), new Date(at(event)).toDateString() !== today)),
-      h("td", {}, tr.kinds[requestKind(event)], h("div", { class: "sub" }, requestKind(event) === "tool" ? event.model ?? event.path : event.context?.kind ?? event.path)),
+      h("td", {}, tr.kinds[requestKind(event)], h("div", { class: "subtext" }, requestKind(event) === "tool" ? event.model ?? event.path : event.context?.kind ?? event.path)),
       h("td", {}, ids.length ? h("code", {}, ids.join(", ")) : "–"),
       h("td", {}, h("span", { class: `badge o-${name}`, title: tr.outcomeLong[name] }, tr.outcome[name])),
       h("td", {}, answerCell(event)),
       h("td", {}, meter(event)),
-      h("td", { class: "num" }, jevLatency(event) !== undefined ? ms(jevLatency(event)) : "–"),
-      h("td", { class: "num" }, jevTokens(event) !== undefined ? int(jevTokens(event)) : "–"));
+      h("td", { class: "numeric" }, jevLatency(event) !== undefined ? ms(jevLatency(event)) : "–"),
+      h("td", { class: "numeric" }, jevTokens(event) !== undefined ? int(jevTokens(event)) : "–"));
     const toggle = () => { open ? view.open.delete(id) : view.open.add(id); rerender(); };
     row.addEventListener("click", (e) => { if (!getSelection()?.toString()) toggle(); });
     row.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); } });
