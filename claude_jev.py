@@ -341,12 +341,12 @@ def stop_check(event):
                     "questions": {"completion": {"type": "choice", "instructions": (
                         "A coding agent edited the files in `edited_files` for the request in `request` and is ending "
                         "its turn with the message in `last_message`. `commands_after_edit` lists the shell commands it "
-                        "ran after the last edit. Which option describes that final message?"),
+                        "ran after the last edit. Does the message report finished work that was never checked?"),
                         "criteria": {
-                            "done_verified": "Claims the task is done and shows a check of the change (test, run or inspection).",
-                            "done_unverified": "Claims the task is done without showing any check of the change.",
-                            "partial": "Says the task is incomplete or has pending items.",
-                            "other": "Not a completion report (a question, an explanation or a request for a decision)."}}}},
+                            "done_unverified": "The message is a report that the work is finished, and neither it nor `commands_after_edit` "
+                                               "shows any test, run, build or inspection of the change.",
+                            "other": "Anything else: the work is reported as checked, the message says work remains, or it asks a "
+                                     "question, answers the user, explains, analyses, plans, or only says what the agent is doing."}}}},
                    timeout=6)
     verdict = answer(data, "completion")
     if not verdict:
@@ -414,18 +414,19 @@ def drift(event):
     data = gateway({"state": {"request": text(prompt, 2000), "earlier_requests": earlier, "previous_reply": reply,
                               "recent_actions": actions},
                     "questions": {"direction": {"type": "choice", "instructions": (
-                        "A coding agent is working on the request in `request`; `earlier_requests` holds the user's previous "
-                        "messages (most recent last) and `previous_reply` the end of the agent's reply right before `request`. "
-                        "They give context when `request` is a short follow-up such as \"yes\" or \"go ahead\": it usually "
-                        "answers the question or proposal at the end of `previous_reply`. `recent_actions` lists its latest tool calls; those marked [error] failed, the rest "
-                        "succeeded. How is the work going? Risky or destructive commands are on track when the request asks "
-                        "for them; if the request only points to instructions elsewhere (a file, an earlier message), do not "
-                        "answer out_of_scope unless the actions clearly contradict it."),
+                        "A coding agent is working on the request in `request`. `earlier_requests` holds the user's previous "
+                        "messages (most recent last) and `previous_reply` the end of the agent's reply right before `request`; "
+                        "when `request` is a short follow-up such as \"yes\" or \"go ahead\" it answers the question or proposal "
+                        "at the end of `previous_reply`. `recent_actions` lists its latest tool calls; those marked [error] failed. "
+                        "Reading, searching, editing, testing and running commands the request asks for, risky or destructive ones "
+                        "included, all count as progress; if the request only points to instructions elsewhere (a file, an earlier "
+                        "message), do not answer out_of_scope unless the actions clearly contradict it. Which situation is the "
+                        "work in? Choose on_track unless another option is clearly shown by `recent_actions`."),
                         "criteria": {
-                            "on_track": "The actions make coherent progress on the request.",
-                            "stuck": "It repeats similar actions, or keeps hitting errors, without visible progress.",
-                            "out_of_scope": "The actions drift away from what was requested.",
-                            "needs_user": "It needs a decision or information from the user to continue."}}}},
+                            "on_track": "The actions are reading, searching, editing or running things that serve the request or its follow-up; this is the default.",
+                            "stuck": "The same action or the same failing command is repeated with [error] results and no change of approach.",
+                            "out_of_scope": "The actions work on something the request did not ask for, such as unrelated files or a different goal.",
+                            "needs_user": "The request leaves a choice or missing information that only the user can give, and the actions guess instead of asking."}}}},
                    timeout=5)
     verdict = answer(data, "direction")
     if not verdict:
