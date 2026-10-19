@@ -2,7 +2,7 @@
 
 [![🇺🇸 English](https://img.shields.io/badge/%F0%9F%87%BA%F0%9F%87%B8-English-blue.svg)](README.md) [![🇧🇷 Português (Brasil)](https://img.shields.io/badge/%F0%9F%87%A7%F0%9F%87%B7-Portugu%C3%AAs%20(Brasil)-green.svg)](README.pt-BR.md)
 
-> ⚠️ **Early access (1.3.0-beta.1):** the Claude Code plugin packaging is new and its layout may change until a stable release. The gateway and the `install.py` path are unchanged.
+> ⚠️ **Early access (1.3.0-beta.2):** the Claude Code plugin packaging is new and its layout may change until a stable release. The gateway and the `install.py` path are unchanged.
 
 ![Master-JEV Hook dashboard in the dark theme, English: masthead with the fork mark, status line, the Answered and No decision hero cards, six tiles, the requests-per-hour and confidence charts](docs/dashboard/screenshots/dashboard-dark-en.jpg)
 
@@ -390,7 +390,7 @@ To verify the plugin path:
 claude plugin list
 ```
 
-It shows `master-jev-hook@keepglide` with `Version: 1.3.0-beta.1`. `scripts/verify.sh` checks the `install.py` path only.
+It shows `master-jev-hook@keepglide` with `Version: 1.3.0-beta.2`. `scripts/verify.sh` checks the `install.py` path only.
 
 To uninstall the plugin:
 
@@ -438,7 +438,7 @@ Or open `http://127.0.0.1:8795/dashboard` directly in the browser.
 | 5 | Check the port | `curl -s http://127.0.0.1:8795/health` | no answer (port free), or `"status":"ok"` from a gateway already running: then skip step 6. Anything else: stop and ask |
 | 6 | 🧑 Gateway service | the commands of step 4️⃣ in Installation | `curl -s http://127.0.0.1:8795/health` returns `"status":"ok"` |
 | 7 | 🧑 Install on the clients | `python3 install.py --dry-run`; show the plan and ask which `--target`; then `python3 install.py --target <target>` | `Plan validated`, then `Master-JEV Hook installed` and a `Backup:` path |
-| 7b | 🧑 Optional, Claude Code only: install as a plugin instead of step 7 for Claude Code | `claude plugin marketplace add KeepGlide/claude-plugins`, then `claude plugin install master-jev-hook@keepglide` | Exit code 0, and `claude plugin list` shows `master-jev-hook@keepglide` with `Version: 1.3.0-beta.1` |
+| 7b | 🧑 Optional, Claude Code only: install as a plugin instead of step 7 for Claude Code | `claude plugin marketplace add KeepGlide/claude-plugins`, then `claude plugin install master-jev-hook@keepglide` | Exit code 0, and `claude plugin list` shows `master-jev-hook@keepglide` with `Version: 1.3.0-beta.2` |
 | 8 | Verify at no cost | `scripts/verify.sh` | last line `All good.` and exit code 0. With 7b, the Claude Code checks print `FAIL` (the skill, the rule file and the hooks come from `install.py`, not from the plugin): last line `N item(s) failed`, exit code 1; that is expected |
 | 9 | Hand back | ask the human to restart the clients | the next Claude Code session starts with `🔷 Master-JEV Hook gateway active: live JEV test passed` |
 

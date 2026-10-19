@@ -6,8 +6,18 @@ versions follow SemVer and the gateway's `package.json`. The measurements behind
 
 ## [Unreleased]
 
+## [1.3.0-beta.2] - 2026-10-19
+
 ### Changed
 
+- **The dashboard page is rebuilt after mock E "navy aurora"** with the KeepGlide identity and the product mark
+  ("the fork", KeepGlide DEC-004): navy canvas, floating cards, a hero pair Answered / No decision with
+  plain-language captions, a one-line status sentence (abstentions above the usual share only from 20 requests),
+  tiles, the two charts, and the request list and advanced data collapsed. English by default with a live pt-BR
+  switch; light and dark follow the system. The rows switch and its `POST /dashboard/routing` call are gone from
+  the page (the route stays). Help buttons were tried and dropped: the cards explain themselves. CSS classes are
+  kebab-case BEM names (`aebc8d5`). Mocks and contract in `docs/dashboard/mocks/`; Sophia chose mock E on
+  2026-10-18 and its KeepGlide refinement E2 feeds the next pass.
 - **The dashboard page now carries the KeepGlide "E2" look.** A light aurora wash, a dot field, a glide arc and a fork
   echo sit behind the page, the fork mark grows to 64 px, the Answered numeral and the ring use a teal-light accent,
   and the muted text and live dot gain contrast. Data behaviour is unchanged. Restart the gateway service to serve it.
@@ -48,20 +58,10 @@ versions follow SemVer and the gateway's `package.json`. The measurements behind
   cascades still gate on `status`, so an abstained score never turns into a value. A Score-only lower floor and a
   "mass within one level" rule were rejected because they would change the documented threshold contract.
 
-### Changed
-
-- **The dashboard page is rebuilt after mock E "navy aurora"** with the KeepGlide identity and the product mark
-  ("the fork", KeepGlide DEC-004): navy canvas, floating cards, a hero pair Answered / No decision with
-  plain-language captions, a one-line status sentence (abstentions above the usual share only from 20 requests),
-  tiles, the two charts, and the request list and advanced data collapsed. English by default with a live pt-BR
-  switch; light and dark follow the system. The rows switch and its `POST /dashboard/routing` call are gone from
-  the page (the route stays). Help buttons were tried and dropped: the cards explain themselves. CSS classes are
-  kebab-case BEM names (`aebc8d5`). Mocks and contract in `docs/dashboard/mocks/`; Sophia chose mock E on
-  2026-10-18 and its KeepGlide refinement E2 feeds the next pass.
-
 ## [1.3.0-beta.1] - 2026-10-17
 
 - See the git history up to tag `v1.3.0-beta.1`; this changelog starts after it.
 
-[Unreleased]: https://github.com/KeepGlide/master-jev-hook/compare/v1.3.0-beta.1...HEAD
+[Unreleased]: https://github.com/KeepGlide/master-jev-hook/compare/v1.3.0-beta.2...HEAD
+[1.3.0-beta.2]: https://github.com/KeepGlide/master-jev-hook/releases/tag/v1.3.0-beta.2
 [1.3.0-beta.1]: https://github.com/KeepGlide/master-jev-hook/releases/tag/v1.3.0-beta.1
