@@ -4,6 +4,10 @@
 
 > ⚠️ **Acesso antecipado (1.3.0-beta.1):** o empacotamento como plugin do Claude Code é novo e o layout pode mudar até uma versão estável. O gateway e o caminho `install.py` não mudam.
 
+![Painel do Master-JEV Hook no tema escuro, em inglês: cabeçalho com a marca do fork, linha de status, os cartões Answered e No decision, seis indicadores e os gráficos de pedidos por hora e de confiança](docs/dashboard/screenshots/dashboard-dark-en.jpg)
+
+![O mesmo painel no tema claro](docs/dashboard/screenshots/dashboard-light-en.jpg)
+
 ## 💡 O que é
 
 O Master-JEV Hook é um serviço local que conecta o Claude Code, o Claude
@@ -40,6 +44,17 @@ O JEV decide entre opções que o agente já levantou: ele não gera texto, não
 prova fatos por conta própria e não concede permissões. Registrar o servidor
 MCP também não muda o endpoint de inferência do modelo — é uma ferramenta a
 mais que o agente pode chamar, e os hooks apenas reforçam quando chamá-la.
+
+O painel em `http://127.0.0.1:8795/dashboard` mostra essas decisões das últimas 24 horas: quantas o JEV respondeu, quantas terminaram sem decisão, os pedidos por hora e a confiança frente aos limiares ([Painel](#painel)).
+
+## ✨ Recursos
+
+- **Decisões do JEV, não palpites:** o agente consulta o JEV por cinco ferramentas MCP: `request_decision` para escolher entre abordagens, e `jev_classify`, `jev_verify`, `jev_score` e `jev_rank` para lotes de itens.
+- **O risco define a exigência:** cada consulta informa o seu risco. Uma resposta de Choice ou Score só conta acima do limiar daquele risco (padrões 0,65, 0,80 ou 0,90). Abaixo dele, o cliente segue a alternativa local e não repete a decisão.
+- **A chave fica no gateway:** o adaptador MCP nunca guarda a chave da TypeSafe, que fica só no ambiente do gateway.
+- **Painel para cada resposta:** as contagens de respondidas e sem decisão, os pedidos por hora e a confiança frente aos limiares, em inglês ou português, no tema claro ou escuro.
+- **Hooks que não bloqueiam:** erro, tempo esgotado ou abstenção nunca param uma sessão do Claude Code. Só um comando que desliga o gateway pode ser bloqueado (veja [Hooks do Claude Code](#hooks-do-claude-code)).
+- **Três clientes, um gateway:** Claude Code, Claude Desktop (modo Chat) e Codex chegam todos ao mesmo gateway local, e o Claude Code também pode carregar o projeto como plugin.
 
 ## ⚙️ Como funciona
 
@@ -173,11 +188,18 @@ abstiver, o comando é bloqueado (veja a linha do Bash abaixo).
 
 ### Painel
 
-O painel local, em `http://127.0.0.1:8795/dashboard`, lista as chamadas ao
-JEV: rota, tokens informados, latência, decisão, pergunta e resultado
-sanitizado. Toda consulta feita pelo MCP e pelos hooks aparece ali. Sem a
-variável `JEV_LOG_FILE`, o histórico fica só em memória e se perde a cada
-reinício do gateway.
+O painel, em `http://127.0.0.1:8795/dashboard`, é servido pelo próprio gateway e mostra ao vivo as decisões do JEV das últimas 24 horas. Usa uma tela azul-marinho com o visual da KeepGlide no tema escuro, e uma tela clara no tema claro. De cima para baixo:
+
+- **Cabeçalho:** o estado do gateway (`hook :8795 · Online`), o modelo e o provedor, os limiares (`thresholds 0.65 / 0.80 / 0.90`), o tempo no ar e o horário do último pedido.
+- **Linha de status:** uma frase, como `Tudo normal · 29% sem decisão, alerta proposto acima de 33%`, ou o motivo de um alerta: um pedido com falha, o gateway fora do ar ou o roteamento do JEV desligado.
+- **Par de destaque:** **Respondidas**, as decisões que o JEV deu, com a parte do total; e **Sem decisão**, os pedidos em que a confiança do JEV ficou abaixo do limiar, então o Claude Code decide sozinho. Não é falha e não entra na contagem de erros.
+- **Indicadores:** pedidos recebidos (com a taxa por hora), parciais, falhas, confiança média (com a menor confiança respondida) e tempo de resposta do JEV.
+- **Pedidos por hora:** uma barra por hora nas últimas 24 horas, coloridas pelo resultado.
+- **Quanta certeza o JEV teve:** a confiança de cada resposta, com linhas tracejadas nos limiares de risco baixo, médio e alto.
+
+A página abre em inglês. A troca **EN / PT-BR** muda o idioma na hora, e a troca **Claro / Escuro** define o tema; sem escolha, o tema segue o do sistema. As duas escolhas ficam guardadas no navegador. Os filtros mostram só um cliente ou um resultado.
+
+Os limiares não ficam fixos na página: o gateway envia os limiares de risco junto com os dados, calculados por `JEV_MIN_CONFIDENCE`, `JEV_MIN_CONFIDENCE_MEDIUM` e `JEV_MIN_CONFIDENCE_HIGH`, então o cabeçalho e o gráfico seguem os valores do `gateway.env`. Sem a variável `JEV_LOG_FILE`, o histórico fica só em memória e se perde a cada reinício do gateway.
 
 ## 📋 Pré-requisitos
 
@@ -413,8 +435,8 @@ Ou abra `http://127.0.0.1:8795/dashboard` diretamente no navegador.
 | 5 | Checar a porta | `curl -s http://127.0.0.1:8795/health` | nenhuma resposta (porta livre), ou `"status":"ok"` de um gateway já rodando: então pule o passo 6. Qualquer outra coisa: pare e pergunte |
 | 6 | 🧑 Serviço do gateway | os comandos do passo 4️⃣ da Instalação | `curl -s http://127.0.0.1:8795/health` devolve `"status":"ok"` |
 | 7 | 🧑 Instalar nos clientes | `python3 install.py --dry-run`; mostre o plano e pergunte qual `--target`; depois `python3 install.py --target <alvo>` | `Plan validated`, depois `Master-JEV Hook installed` e um caminho `Backup:` |
-| 7b | 🧑 Opcional, só Claude Code: instalar como plugin no lugar do passo 7 para o Claude Code | `claude plugin marketplace add KeepGlide/claude-plugins`, depois `claude plugin install master-jev-hook@keepglide` | `Successfully installed plugin: master-jev-hook@keepglide (scope: user)`, e `claude plugin list` mostra `Version: 1.3.0-beta.1`. Com o 7b, o passo 8 aponta os itens do Claude Code como ausentes; isso é esperado |
-| 8 | Verificar sem custo | `scripts/verify.sh` | última linha `All good.` e código de saída 0 |
+| 7b | 🧑 Opcional, só Claude Code: instalar como plugin no lugar do passo 7 para o Claude Code | `claude plugin marketplace add KeepGlide/claude-plugins`, depois `claude plugin install master-jev-hook@keepglide` | Código de saída 0, e `claude plugin list` mostra `master-jev-hook@keepglide` com `Version: 1.3.0-beta.1` |
+| 8 | Verificar sem custo | `scripts/verify.sh` | última linha `All good.` e código de saída 0. Com o 7b, as verificações do Claude Code saem como `FAIL` (a skill, o arquivo de regra e os hooks vêm do `install.py`, não do plugin): última linha `N item(s) failed`, código de saída 1; isso é esperado |
 | 9 | Devolver ao humano | peça ao humano para reiniciar os clientes | a próxima sessão do Claude Code começa com `🔷 Master-JEV Hook gateway active: live JEV test passed` |
 
 ✅ **Pronto quando** os passos 1–8 baterem com o **Esperado**. Relate o
