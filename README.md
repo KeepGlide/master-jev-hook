@@ -281,7 +281,7 @@ Main variables (see `gateway/.env.example` for the full list):
 | `JEV_MIN_CONFIDENCE_MEDIUM` | `0.80` | Minimum confidence for medium risk |
 | `JEV_MIN_CONFIDENCE_HIGH` | `0.90` | Minimum confidence for high risk |
 | `JEV_DIRECT_CALLS` | `false` | Answer without calling JEV when the arguments are already certain |
-| `JEV_CONTEXT_ROUTING` | `true` | Enables the `/master/context` route |
+| `JEV_CONTEXT_ROUTING` | `true` | Enables JEV assessment of decision contexts (`/master/context`, `master_context`); `false` skips them |
 | `JEV_INSPECT_INPUTS` | `false` | Keeps local copies of the inputs sent to JEV (may contain private data) |
 | `JEV_LOG_FILE` | (empty) | Absolute path of the log; without it, the dashboard history does not survive a restart |
 | `ROUTER_API_KEY` | (empty) | Key clients must send (`Authorization: Bearer …`); required for a non-loopback `HOST`, and requires `UPSTREAM_API_KEY` |

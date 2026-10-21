@@ -281,7 +281,7 @@ completa):
 | `JEV_MIN_CONFIDENCE_MEDIUM` | `0.80` | Confiança mínima do risco médio |
 | `JEV_MIN_CONFIDENCE_HIGH` | `0.90` | Confiança mínima do risco alto |
 | `JEV_DIRECT_CALLS` | `false` | Responder sem chamar o JEV quando os argumentos já são certos |
-| `JEV_CONTEXT_ROUTING` | `true` | Habilita a rota `/master/context` |
+| `JEV_CONTEXT_ROUTING` | `true` | Habilita a avaliação pelo JEV dos contextos de decisão (`/master/context`, `master_context`); `false` os pula |
 | `JEV_INSPECT_INPUTS` | `false` | Guarda cópias locais das entradas enviadas ao JEV (pode conter dados privados) |
 | `JEV_LOG_FILE` | (vazio) | Caminho absoluto do log; sem ele, o histórico do painel não sobrevive a um reinício |
 | `ROUTER_API_KEY` | (vazio) | Chave que os clientes precisam enviar (`Authorization: Bearer …`); obrigatória para `HOST` fora do loopback e exige `UPSTREAM_API_KEY` |
