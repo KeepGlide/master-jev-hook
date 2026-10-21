@@ -2,16 +2,16 @@
 
 [![🇺🇸 English](https://img.shields.io/badge/%F0%9F%87%BA%F0%9F%87%B8-English-blue.svg)](README.md) [![🇧🇷 Português (Brasil)](https://img.shields.io/badge/%F0%9F%87%A7%F0%9F%87%B7-Portugu%C3%AAs%20(Brasil)-green.svg)](README.pt-BR.md)
 
-Local Node.js service that brings JEV's decisions to the agent. It exposes
-the decision MCP tools (`bin/master-jev-mcp.mjs`), serves the Master-JEV
-Hook HTTP routes, routes tool choice for LLM clients (Codex, Claude Code,
-OpenCode, Gemini) and serves a dashboard at `/dashboard`.
+Local Node.js service that brings JEV's decisions to the agent. It exposes the decision MCP tools (`bin/master-jev-mcp.mjs`), serves the Master-JEV Hook HTTP routes, routes tool choice for LLM clients (Codex, Claude Code, OpenCode, Gemini) and serves a dashboard at `/dashboard`.
 
 Overview, installation and usage: [main README](../README.md).
 
-## ⌨️ Commands
+## 📋 Prerequisites
 
-Requires Node.js 22.15 or newer and pnpm.
+- Node.js 22.15 or newer (`engines` in `package.json`).
+- pnpm 10.33.3 (`packageManager` in `package.json`).
+
+## 🧭 Usage
 
 ```sh
 pnpm install --frozen-lockfile --ignore-scripts
@@ -23,9 +23,18 @@ pnpm dev            # development mode, reloads on save
 pnpm smoke:install  # packaged installation (after build)
 ```
 
-Environment variables: see [.env.example](.env.example).
+## 🎛️ Configuration
+
+Environment variables: see [.env.example](.env.example). The main variables, with their defaults, are in the [main README](../README.md).
+
+## 🧪 Tests
+
+| Category | Tests |
+| --- | --- |
+| Gateway, TypeScript (`test/`, 25 files) | 281 |
+
+Counts from `pnpm exec vitest list --json` in `gateway/`, at commit `b382309`, 2026-10-21. Collection only; no test ran.
 
 ## 📄 License
 
-Apache License 2.0. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE); code originally derived from
-MIT-licensed jev-gateway is covered in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
+Apache License 2.0. See [LICENSE](../LICENSE) and [NOTICE](../NOTICE); code originally derived from MIT-licensed jev-gateway is covered in [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

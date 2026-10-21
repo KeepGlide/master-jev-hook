@@ -38,6 +38,7 @@ versions follow SemVer and the gateway's `package.json`. The measurements behind
 
 ### Changed
 
+- **The README pairs follow the KeepGlide README standard.** The root pair gains the banner, the badges, a contents block, and the Status, Updating, Known issues, Tests and Contributing sections; "Uninstall / restore backup" and "Privacy and costs" are renamed to Uninstall and Security and privacy. The `gateway/` pair gains Prerequisites, Usage, Configuration and Tests (its Commands section becomes Usage). `SECURITY.md` is added.
 - **Invalid boolean or port values in the gateway env now stop the start with a clear message** instead of silently
   turning a feature off. A missing JEV key no longer stops the gateway at start: it prints one warning line and each
   JEV call reports the missing variable.
