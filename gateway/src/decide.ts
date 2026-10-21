@@ -61,7 +61,7 @@ function skipReason(input: RouterInput): string | undefined {
   if (input.tools.length > MAX_TOOLS * 255) return "too_many_tools";
   if (input.tools.some((tool) => typeof tool.name !== "string" || !SAFE_TOOL_NAME.test(tool.name))) return "unsafe_tool_name";
   if (new Set(input.tools.map((tool) => tool.name)).size !== input.tools.length) return "duplicate_tool_names";
-  if (input.tools.some((tool) => tool.name === NO_TOOL)) return "reserved_tool_name";
+  if (input.tools.some((tool) => tool.name === NO_TOOL || tool.name === NONE_OF_THESE)) return "reserved_tool_name";
   if (input.toolChoice === "decided") return "tool_choice_already_decided";
   return undefined;
 }
@@ -73,7 +73,8 @@ function resolveArgs(
   answers: Answers,
   minCertainty: number,
 ): { args: Record<string, Json>; certainty: number } | undefined {
-  const args: Record<string, Json> = {};
+  // Null prototype: an argument named `__proto__` must stay an own property, not set the prototype.
+  const args: Record<string, Json> = Object.create(null);
   let certainty = 1;
   for (const param of plan.closedParams ?? []) {
     if (param.kind === "const") {
@@ -190,6 +191,8 @@ export async function decide(input: RouterInput, config: Config, askJev: AskJev)
   // Neither can namespaced ones: backends reject both `tool_choice.namespace` and the bare name.
   if (tool.namespace) return { mode: "passthrough", reason: "namespaced_tool_selected", jev };
 
+  // Without JEV_DIRECT_CALLS no argument questions are asked, so only a tool with nothing to fill
+  // (no parameters, or const ones) resolves here; that needs no judgement beyond the tool choice.
   const resolved = plan.closedParams && resolveArgs(plan, toolIndex, result.answers, config.argMinCertainty);
   if (resolved) {
     return {

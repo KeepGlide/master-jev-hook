@@ -1,10 +1,10 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /**
  * Opt-in wire dumps (`JEV_DEBUG_DUMP_DIR`): what a client *really* sends is the only reliable
  * spec for backends like ChatGPT's, which are undocumented. Dumps hold the whole conversation,
- * so they are never on by default and credentials never reach the disk.
+ * so they are never on by default. Request headers are redacted by name; bodies are not.
  */
 
 // Anything that authenticates or identifies the account. Matched loosely on purpose: a header
@@ -72,9 +72,20 @@ export function createDump(dir: string | undefined): Dump | undefined {
   let sequence = 0;
   return (kind, data) => {
     try {
-      mkdirSync(dir, { recursive: true });
+      mkdirSync(dir, { recursive: true, mode: 0o700 });
+      // mkdirSync leaves an existing directory's mode alone, so an older, looser one is tightened here.
+      chmodSync(dir, 0o700);
       const name = `${startedAt}-${String(++sequence).padStart(4, "0")}-${kind}.json`;
-      writeFileSync(join(dir, name), JSON.stringify(data, null, 2), { mode: 0o600 });
+      // Written under a temporary name and renamed, so a reader never sees a half-written dump.
+      const file = join(dir, name);
+      const temp = `${file}.tmp`;
+      writeFileSync(temp, JSON.stringify(data, null, 2), { flag: "wx", mode: 0o600 });
+      try {
+        renameSync(temp, file);
+      } catch (error) {
+        rmSync(temp, { force: true });
+        throw error;
+      }
     } catch {
       // Debugging aid only: a full disk must not break routing.
     }

@@ -69,6 +69,15 @@ describe("batches, chains, composite and cascade", () => {
     expect(r.composite).toMatchObject({ status: "abstain", value: null });
     expect(r.cascade?.route).toBe("abstain");
   });
+  it("is fully ok when the only skipped branch is conditional and every asked answer is ok", async () => {
+    const r = await runWorkflow(parseWorkflow(chain), fake("no").ask, "test", 0.65);
+    expect(r.status).toBe("ok");
+  });
+  it("reports an abstained Choice with a null choice, even when its confidence clears the threshold", async () => {
+    const ask: AskJev = async () => ({ model: "test", usage: { input_tokens: 1, output_tokens: 1 }, answers: { enough: { type: "choice", choice: "abstain", confidence: 0.99, probabilities: { abstain: 1 } } } }) as any;
+    const r = await runWorkflow(parseWorkflow({ state: { evidence: "example" }, questions: { enough: gate } }), ask, "test", 0.65);
+    expect(r.answers.enough).toMatchObject({ status: "abstain", choice: null });
+  });
   it("invalidates composite after one low-confidence score", async () => {
     const f = fake("yes", 0.4), r = await runWorkflow(parseWorkflow(chain), f.ask, "test", 0.65);
     expect(r.status).toBe("partial");

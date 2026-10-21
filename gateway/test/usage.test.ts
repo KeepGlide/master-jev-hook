@@ -64,6 +64,23 @@ describe("readUsage", () => {
     expect(usage).toEqual({ input: 100, cached: 64, cacheWrite: 0, output: 20, reasoning: 8 });
   });
 
+  it("reports a count sent as null as unknown, not as zero", async () => {
+    const usage = await readUsage(Response.json({ usage: { prompt_tokens: null, completion_tokens: 20 } }));
+    expect(usage?.input).toBeUndefined();
+    expect(usage?.output).toBe(20);
+  });
+
+  it("lets a later null leave an earlier known count in place", async () => {
+    const usage = await readUsage(
+      sse([
+        { type: "message_start", message: { usage: { input_tokens: 12, cache_read_input_tokens: 9000, cache_creation_input_tokens: 500, output_tokens: 1 } } },
+        { type: "message_delta", delta: { stop_reason: "end_turn" }, usage: { output_tokens: 210 } },
+        { type: "message_delta", delta: {}, usage: { output_tokens: null } },
+      ]),
+    );
+    expect(usage).toEqual({ input: 9512, cached: 9000, cacheWrite: 500, output: 210, reasoning: 0 });
+  });
+
   it("reports nothing rather than zeros when the reply never said", async () => {
     expect(await readUsage(new Response("<html>bad gateway</html>", { status: 502 }))).toBeUndefined();
   });

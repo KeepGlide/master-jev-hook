@@ -60,6 +60,9 @@ function normalize(result: SystemOneResult<Questions>): SystemOneResult<Question
   return { model: result.model, answers, usage: { input_tokens: result.usage?.input_tokens ?? 0, output_tokens: result.usage?.output_tokens ?? 0 } } as SystemOneResult<Questions>;
 }
 
+/** Fetch errors can echo the URL they were given, credentials and query included. */
+export const redactUrls = (message: string) => message.replace(/[a-z][a-z0-9+.-]*:\/\/\S+/gi, "<redacted-url>");
+
 /** Statuses meaning the API did not process the request (rate limit, overload): safe to resend. */
 const UNPROCESSED = new Set([429, 503, 529]);
 /** Waits longer than this are not worth it inside a decision's deadline. */
@@ -91,22 +94,26 @@ const sleep = (ms: number, signal?: AbortSignal) => new Promise<void>((resolve, 
 /** The one call the gateway makes to Jev, for whichever provider is configured. */
 export function createAskJev(config: Pick<Config, "jevProvider" | "jevApiKey" | "jevUrl" | "jevTimeoutMs"> & Partial<Pick<Config, "jevMaxRetries" | "jevRetryBaseMs">>, fetchImpl: typeof fetch = fetch): AskJev {
   const provider = providers[config.jevProvider];
-  if (!config.jevApiKey) {
-    throw new Error(`No API key for Jev: set ${provider.keyEnv} (${provider.label}), or run master-jev-codex --setup.`);
-  }
   const once = async (request: SystemOneRequest<Questions>, signal?: AbortSignal) => {
-    const response = await fetchImpl(config.jevUrl, {
-      method: "POST",
-      headers: {
-        authorization: `Bearer ${config.jevApiKey}`,
-        "content-type": "application/json",
-        // OpenRouter attributes traffic by these; the others ignore them.
-        "http-referer": "https://github.com/KeepGlide/master-jev-hook",
-        "x-title": "master-jev-hook",
-      },
-      body: JSON.stringify(request),
-      signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(config.jevTimeoutMs)]) : AbortSignal.timeout(config.jevTimeoutMs),
-    });
+    let response: Response;
+    try {
+      response = await fetchImpl(config.jevUrl, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${config.jevApiKey}`,
+          "content-type": "application/json",
+          // OpenRouter attributes traffic by these; the others ignore them.
+          "http-referer": "https://github.com/KeepGlide/master-jev-hook",
+          "x-title": "master-jev-hook",
+        },
+        body: JSON.stringify(request),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(config.jevTimeoutMs)]) : AbortSignal.timeout(config.jevTimeoutMs),
+      });
+    } catch (error) {
+      // Keep the cause: the retry rule reads its code. Drop any URL the message echoes.
+      const message = redactUrls(error instanceof Error ? error.message : String(error));
+      throw Object.assign(new Error(message), { cause: (error as { cause?: unknown }).cause });
+    }
     if (!response.ok) {
       await response.body?.cancel();
       throw Object.assign(new Error(`JEV HTTP ${response.status}`), { status: response.status, retryAfterMs: retryAfter(response.headers) });
@@ -129,6 +136,10 @@ export function createAskJev(config: Pick<Config, "jevProvider" | "jevApiKey" | 
   const retries = config.jevMaxRetries ?? 2;
   const base = config.jevRetryBaseMs ?? 500;
   return async (request, signal) => {
+    // Checked per call, not at creation: a gateway that starts with routing off has no need for a key.
+    if (!config.jevApiKey) {
+      throw new Error(`No API key for Jev: set ${provider.keyEnv} (${provider.label}), or run master-jev-codex --setup.`);
+    }
     for (let attempt = 0; ; attempt++) {
       try {
         return await once(request, signal);
@@ -136,7 +147,8 @@ export function createAskJev(config: Pick<Config, "jevProvider" | "jevApiKey" | 
         const status = (error as { status?: number }).status;
         const retryable = status !== undefined ? UNPROCESSED.has(status) : neverReached(error);
         if (!retryable || attempt >= retries || signal?.aborted) throw error;
-        const backoff = Math.min(base * 2 ** attempt, MAX_RETRY_WAIT_MS) * (1 + Math.random() * 0.25);
+        // Jitter first, then the cap: the wait never exceeds MAX_RETRY_WAIT_MS.
+        const backoff = Math.min(base * 2 ** attempt * (1 + Math.random() * 0.25), MAX_RETRY_WAIT_MS);
         const wait = (error as { retryAfterMs?: number }).retryAfterMs ?? backoff;
         if (wait > MAX_RETRY_WAIT_MS) throw error;
         await sleep(wait, signal);

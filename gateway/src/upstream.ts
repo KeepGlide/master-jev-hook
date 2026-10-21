@@ -1,4 +1,5 @@
 import type { Config } from "./config.js";
+import { redactUrls } from "./jev.js";
 
 // Hop-by-hop and length/encoding headers must not cross the proxy: fetch re-frames
 // (and transparently decompresses) bodies, so the originals would be wrong.
@@ -70,7 +71,8 @@ export async function forward(
   try {
     upstream = await fetchImpl(target, init);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
+    // The target carries the client's query, which may hold a key: never echo it back.
+    const message = redactUrls(error instanceof Error ? error.message : String(error));
     return Response.json(
       { error: { message: `master-jev-hook could not reach upstream: ${message}`, type: "upstream_unreachable" } },
       { status: 502, headers: options.responseHeaders },

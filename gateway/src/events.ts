@@ -107,11 +107,13 @@ function readTail(file: string, bytes: number): Record<string, unknown>[] {
     fd = openSync(file, "r");
     const { size } = fstatSync(fd);
     const start = Math.max(0, size - bytes);
-    const buffer = Buffer.alloc(size - start);
-    readSync(fd, buffer, 0, buffer.length, start);
+    // Read from one byte earlier: it tells whether the window opens on a line boundary.
+    const from = Math.max(0, start - 1);
+    const buffer = Buffer.alloc(size - from);
+    readSync(fd, buffer, 0, buffer.length, from);
     const lines = buffer.toString("utf8").split("\n");
-    // Starting mid-file means starting mid-line.
-    if (start > 0) lines.shift();
+    // Starting mid-line (the byte before the window is not a newline) drops the partial first line.
+    if (start > 0 && buffer[0] !== 0x0a) lines.shift();
     return lines.flatMap((line) => {
       if (!line.startsWith("{")) return [];
       try {
@@ -143,7 +145,15 @@ export function createEventLog({ capacity = DEFAULT_CAPACITY, historyFile }: { c
     events.push(event);
     if (events.length > capacity) events.shift();
   };
-  if (historyFile) for (const entry of readTail(historyFile, HISTORY_BYTES)) record(entry);
+  if (historyFile)
+    for (const entry of readTail(historyFile, HISTORY_BYTES)) {
+      // One malformed entry must not end the replay of the rest.
+      try {
+        record(entry);
+      } catch {
+        // Skipped: it never became an event.
+      }
+    }
   return {
     record,
     since: (seq) => events.filter((event) => event.seq > seq),

@@ -110,7 +110,8 @@ export async function runWorkflow(plan: Workflow, ask: AskJev, model: string, th
           requireValid(num(a.confidence));
           if (a.type === "choice") {
             requireValid(a.choice === "abstain" || (obj(q.criteria) && Object.hasOwn(q.criteria, a.choice)));
-            batch[name] = { type: "choice", status: a.confidence >= threshold && a.choice !== "abstain" ? "ok" : "abstain", choice: a.confidence >= threshold ? a.choice : null, confidence: a.confidence };
+            const usable = a.confidence >= threshold && a.choice !== "abstain";
+            batch[name] = { type: "choice", status: usable ? "ok" : "abstain", choice: usable ? a.choice : null, confidence: a.confidence };
           } else if (a.type === "score") {
             requireValid(Array.isArray(q.criteria) && num(a.score, q.criteria.length - 1));
             // A Score below the threshold is usually mass split between two adjacent levels: the expected
@@ -123,8 +124,10 @@ export async function runWorkflow(plan: Workflow, ask: AskJev, model: string, th
       const states = Object.values(batch).map((a) => a.status);
       result.stages.push({ id: stage.id, status: states.every((s) => s === "ok") ? "ok" : states.every((s) => s === "abstain") ? "abstain" : "partial", questions: Object.keys(batch) });
     }
-    const accepted = Object.values(result.answers).filter((a) => a.status === "ok").length;
-    result.status = accepted === Object.keys(result.answers).length ? "ok" : accepted === 0 ? "abstain" : "partial";
+    // Skipped branches were never asked, so they neither count for nor against the run.
+    const asked = Object.values(result.answers).filter((a) => a.status !== "skipped");
+    const accepted = asked.filter((a) => a.status === "ok").length;
+    result.status = accepted === asked.length ? "ok" : accepted === 0 ? "abstain" : "partial";
   } catch (error) {
     result.status = "fallback";
     result.reason = error instanceof Error && error.message === "request_too_large" ? "request_too_large" : "workflow_evaluation_failed";
