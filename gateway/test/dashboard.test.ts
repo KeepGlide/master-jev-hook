@@ -1,7 +1,7 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import type { AskJev } from "../src/decide.js";
 import { createEventLog, type RouteEvent } from "../src/events.js";
@@ -11,6 +11,17 @@ import { chat, fakeJev, fakeUpstream, testConfig, settled } from "./helpers.js";
 type Feed = { router: Record<string, unknown>; events: RouteEvent[] };
 
 const SECRET = "the launch codes are 0000";
+
+// Temp dirs made by these tests are removed after the file, by their exact path.
+const scratch: string[] = [];
+const makeScratch = (prefix: string) => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  scratch.push(dir);
+  return dir;
+};
+afterAll(() => {
+  for (const dir of scratch) rmSync(dir, { recursive: true, force: true });
+});
 
 const lights = {
   tool: { choice: "set_lights" },
@@ -130,7 +141,7 @@ describe("createEventLog", () => {
   });
 
   it("replays a launcher log so history survives a restart, skipping what isn't a route event", () => {
-    const file = join(mkdtempSync(join(tmpdir(), "jev-events-")), "codex.log");
+    const file = join(makeScratch("jev-events-"), "codex.log");
     writeFileSync(
       file,
       [
@@ -212,6 +223,11 @@ describe("dashboard page, static checks", () => {
     return new Function(`return ${literal};`)() as Record<"en" | "pt-BR", Record<string, unknown>>;
   };
 
+  it("re-renders on its own source's first failed poll, so the offline sentence shows", async () => {
+    // `up` is already false before the first poll, so the memo signature must carry failedPoll too.
+    expect(code(await page())).toMatch(/sources\.map\(\(source\) => `[^`]*source\.failedPoll[^`]*`\)/);
+  });
+
   it("defines every var(--token) its stylesheet uses", async () => {
     const html = await page();
     const css = html.slice(html.indexOf("<style>"), html.indexOf("</style>"));
@@ -242,10 +258,38 @@ describe("dashboard page, static checks", () => {
     expect(Object.keys(strings["pt-BR"]).sort()).toEqual(Object.keys(strings.en).sort());
   });
 
+  it("labels the routing and context reasons the gateway logs, in both languages", async () => {
+    const strings = translations(await page());
+    const reasons = ["unrouted_endpoint", "context_disabled", "context_uncertain", "no_context_rule", "invalid_context"];
+    for (const lang of ["en", "pt-BR"] as const) {
+      expect(Object.keys(strings[lang].reasons as Record<string, string>)).toEqual(expect.arrayContaining(reasons));
+    }
+  });
+
   it("gates the abstention warning on MIN_SAMPLE", async () => {
     const script = code(await page());
     expect(script).toMatch(/const MIN_SAMPLE = \d+;/);
     const body = script.match(/function statusSentence\([^)]*\) \{([\s\S]*?)\n\}/)?.[1] ?? "";
     expect(body).toContain("MIN_SAMPLE");
+  });
+
+  it("says the gateway is offline when the page's own poll failed before it ever answered", async () => {
+    const html = await page();
+    const script = code(html);
+    const strings = translations(html);
+    // statusSentence and the two helpers it reads before the offline check, run on a fake source list.
+    const body = [
+      script.match(/^const currentStrings = .*$/m)?.[0],
+      script.match(/^const awaitingData = .*$/m)?.[0],
+      script.match(/function statusSentence\([^)]*\) \{[\s\S]*?\n\}/)?.[0],
+      "return statusSentence;",
+    ].join("\n");
+    const sentence = (sources: object[], lang: "en" | "pt-BR") =>
+      (new Function("sources", "view", "STRINGS", body)(sources, { lang }, strings) as (...args: unknown[]) => { iconName: string; text: string })(0, {}, [], []);
+    const own = (over: Record<string, unknown>) => ({ own: true, seen: false, failedPoll: false, up: false, ...over });
+    for (const lang of ["en", "pt-BR"] as const) {
+      expect(sentence([own({ failedPoll: true })], lang)).toEqual({ iconName: "alert", text: strings[lang].offlineWhy });
+      expect(sentence([own({})], lang)).toEqual({ iconName: "info", text: strings[lang].waitingForData });
+    }
   });
 });

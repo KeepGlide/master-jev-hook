@@ -531,6 +531,11 @@ const STRINGS = {
       low_confidence: "A confiança do JEV ficou abaixo do limiar.",
       jev_answers_disagree: "As respostas do JEV se contradisseram.",
       no_tool_needed: "O JEV disse que nenhuma ferramenta é necessária.",
+      unrouted_endpoint: "O gateway não roteia este endpoint; o pedido foi direto ao LLM.",
+      context_disabled: "O roteamento por contexto está desligado neste gateway.",
+      context_uncertain: "O JEV não teve confiança suficiente para escolher neste contexto.",
+      no_context_rule: "Nenhuma regra de contexto cobre este tipo de pedido.",
+      invalid_context: "O contexto enviado a /master/context não está no formato documentado.",
       hosted_tool_selected: "O JEV escolheu uma ferramenta do provedor, que não pode ser forçada.",
       namespaced_tool_selected: "O JEV escolheu uma ferramenta com namespace, que não pode ser forçada.",
       jev_unknown_tool: "O JEV citou uma ferramenta que não existe na lista.",
@@ -631,6 +636,11 @@ const STRINGS = {
       low_confidence: "JEV's confidence was below the threshold.",
       jev_answers_disagree: "JEV's answers contradicted each other.",
       no_tool_needed: "JEV said no tool is needed.",
+      unrouted_endpoint: "The gateway doesn't route this endpoint; the request went straight to the LLM.",
+      context_disabled: "Context routing is switched off on this gateway.",
+      context_uncertain: "JEV wasn't confident enough to pick in this context.",
+      no_context_rule: "No context rule covers this kind of request.",
+      invalid_context: "The context sent to /master/context isn't in the documented shape.",
       hosted_tool_selected: "JEV picked a provider-run tool, which can't be forced.",
       namespaced_tool_selected: "JEV picked a namespaced tool, which can't be forced.",
       jev_unknown_tool: "JEV named a tool that isn't in the list.",
@@ -661,7 +671,7 @@ const sources = [...ports].map((port) => ({
   own: port === ownPort,
   // Another router has its own key, if any; ours is only ever sent back to where it came from.
   url: port === ownPort ? "/dashboard/events?" + (key ? "key=" + encodeURIComponent(key) + "&" : "") : `${location.protocol}//${location.hostname}:${port}/dashboard/events?`,
-  events: [], lastSeq: 0, router: undefined, up: false, seen: false, misses: 0,
+  events: [], lastSeq: 0, router: undefined, up: false, seen: false, failedPoll: false, misses: 0,
 }));
 
 // Browser storage is a convenience only: it may be missing or throw.
@@ -798,7 +808,9 @@ async function poll(source) {
     source.up = source.seen = true;
     source.lastGoodAt = Date.now();
   } catch {
+    // Offline from the first failed poll on, even before this source has ever answered.
     source.up = false;
+    source.failedPoll = true;
   }
 }
 
@@ -806,6 +818,11 @@ async function poll(source) {
 const awaitingData = () => !sources.some((source) => source.seen);
 const whileAwaiting = (text) => (awaitingData() ? "–" : text);
 const rerender = () => { signature = ""; render(); };
+/** Rebuilt controls carry a data-focus-key that names the control (not the node), so focus can come back to it after a render. */
+const focusKeyOf = () => document.activeElement?.dataset?.focusKey;
+function restoreFocusKey(key) {
+  if (key) document.querySelector(`[data-focus-key="${CSS.escape(key)}"]`)?.focus({ preventScroll: true });
+}
 const effectiveTheme = () => view.theme ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
 const applyTheme = () => { document.documentElement.dataset.theme = effectiveTheme(); };
 
@@ -823,11 +840,11 @@ function renderControls() {
   const clients = [...new Set(sources.filter((source) => source.router).map((source) => source.router.client))];
   elementById("clients").hidden = clients.length < 2;
   elementById("clients").setAttribute("aria-label", strings.client);
-  elementById("clients").replaceChildren(...["all", ...clients].map((name) => actionButton("segment-control__button", name === "all" ? strings.allClients : name, () => { view.client = name; view.limit = PAGE_ROWS; }, { "aria-pressed": String(view.client === name), title: strings.clientTitle(name === "all" ? strings.allClients : name) })));
+  elementById("clients").replaceChildren(...["all", ...clients].map((name) => actionButton("segment-control__button", name === "all" ? strings.allClients : name, () => { view.client = name; view.limit = PAGE_ROWS; }, { "aria-pressed": String(view.client === name), title: strings.clientTitle(name === "all" ? strings.allClients : name), "data-focus-key": `client:${name}` })));
   elementById("languages").setAttribute("aria-label", strings.language);
-  elementById("languages").replaceChildren(...[["en", "EN"], ["pt-BR", "PT-BR"]].map(([lang, label]) => actionButton("segment-control__button", label, () => { view.lang = lang; store("master-jev-dashboard-lang", lang); }, { "aria-pressed": String(view.lang === lang), title: strings.langTitle })));
+  elementById("languages").replaceChildren(...[["en", "EN"], ["pt-BR", "PT-BR"]].map(([lang, label]) => actionButton("segment-control__button", label, () => { view.lang = lang; store("master-jev-dashboard-lang", lang); }, { "aria-pressed": String(view.lang === lang), title: strings.langTitle, "data-focus-key": `language:${lang}` })));
   elementById("themes").setAttribute("aria-label", strings.theme);
-  elementById("themes").replaceChildren(...[["light", strings.light], ["dark", strings.dark]].map(([theme, label]) => actionButton("segment-control__button", label, () => { view.theme = theme; store("master-jev-dashboard-theme", theme); applyTheme(); }, { "aria-pressed": String(effectiveTheme() === theme), title: strings.themeTitle })));
+  elementById("themes").replaceChildren(...[["light", strings.light], ["dark", strings.dark]].map(([theme, label]) => actionButton("segment-control__button", label, () => { view.theme = theme; store("master-jev-dashboard-theme", theme); applyTheme(); }, { "aria-pressed": String(effectiveTheme() === theme), title: strings.themeTitle, "data-focus-key": `theme:${theme}` })));
   document.documentElement.lang = view.lang;
   for (const node of document.querySelectorAll("[data-i18n]")) node.textContent = strings[node.dataset.i18n];
 }
@@ -841,7 +858,7 @@ function renderStatus(now) {
     const router = source.router;
     const events = source.events;
     const lastCall = [...events].reverse().find((event) => outcome(event) !== "skipped");
-    const [state, label, why] = !source.seen ? ["paused", strings.connecting, undefined]
+    const [state, label, why] = !source.seen && !source.failedPoll ? ["paused", strings.connecting, undefined]
       : !source.up ? ["offline", strings.offline, strings.offlineWhy]
       : router?.routing === false ? ["paused", strings.paused, strings.pausedWhy]
       : lastCall && outcome(lastCall) === "failed" ? ["failing", strings.failing, strings.failingWhy(lastCall.context?.reason ?? lastCall.reason ?? "?")]
@@ -885,6 +902,7 @@ function riskThresholdText(router) {
 /** The one status sentence: an icon and text, always shown. An offline router gets its own line; when every router is paused or not yet seen, the sentence says the hook is not asking. */
 function statusSentence(total, counts, states, failures) {
   const strings = currentStrings();
+  if (sources.some((source) => source.own && source.failedPoll && !source.seen)) return { iconName: "alert", text: strings.offlineWhy };
   if (awaitingData()) return { iconName: "info", text: strings.waitingForData };
   const lastGood = Math.max(0, ...sources.map((source) => source.lastGoodAt ?? 0));
   if (lastGood && !sources.some((source) => source.up)) return { iconName: "alert", text: strings.staleSince(hourLabel(lastGood)) };
@@ -915,12 +933,12 @@ function countOutcomes(events) {
   return counts;
 }
 
-/** 24 whole-hour buckets, the last one being the current hour. */
+/** 24 whole-hour buckets, the last one being the current hour. The part of the 24 h window before the first bucket lands in the first bucket, so no event is dropped. */
 function hourlyBuckets(events, now) {
   const first = Math.floor(now / HOUR) * HOUR - 23 * HOUR;
   const buckets = Array.from({ length: 24 }, (_, index) => ({ start: first + index * HOUR, counts: {} }));
   for (const event of events) {
-    const bucket = buckets[Math.floor((eventTime(event) - first) / HOUR)];
+    const bucket = buckets[Math.max(0, Math.floor((eventTime(event) - first) / HOUR))];
     if (bucket) bucket.counts[outcome(event)] = (bucket.counts[outcome(event)] ?? 0) + 1;
   }
   return buckets;
@@ -1186,7 +1204,7 @@ function detail(event) {
 
 function renderFilters(counts, total) {
   const strings = currentStrings();
-  const chip = (name, label, count) => actionButton("filter", `${label} (${formatInteger(count)})`, () => { view.outcome = name; view.limit = PAGE_ROWS; }, { "aria-pressed": String(view.outcome === name), title: name === "all" ? strings.all : strings.outcomeLong[name] });
+  const chip = (name, label, count) => actionButton("filter", `${label} (${formatInteger(count)})`, () => { view.outcome = name; view.limit = PAGE_ROWS; }, { "aria-pressed": String(view.outcome === name), title: name === "all" ? strings.all : strings.outcomeLong[name], "data-focus-key": `filter:${name}` });
   elementById("filters").setAttribute("aria-label", strings.filterLabel);
   elementById("filters").replaceChildren(chip("all", strings.all, total), ...OUTCOMES.filter((name) => counts[name] || name === "answered" || name === "abstain" || name === "failed").map((name) => chip(name, strings.outcome[name], counts[name])));
 }
@@ -1207,7 +1225,7 @@ function renderRows(events, now) {
   const rest = matching.length - shown.length;
   elementById("more").hidden = rest <= 0;
   elementById("more").replaceChildren(element("span", { class: "note" }, strings.showing(formatInteger(shown.length), formatInteger(matching.length))),
-    rest > 0 && actionButton("button button--ghost", strings.showMore(formatInteger(Math.min(PAGE_ROWS, rest))), () => (view.limit += PAGE_ROWS), { title: strings.showMoreTitle }));
+    rest > 0 && actionButton("button button--ghost", strings.showMore(formatInteger(Math.min(PAGE_ROWS, rest))), () => (view.limit += PAGE_ROWS), { title: strings.showMoreTitle, "data-focus-key": "show-more" }));
   if (!shown.length) return elementById("rows").replaceChildren(element("tr", {}, element("td", { colspan: "8", class: "empty" }, events.length ? strings.noRowsFilter : strings.noRows)));
   const today = new Date(now).toDateString();
   elementById("rows").replaceChildren(...shown.flatMap((event) => {
@@ -1218,7 +1236,7 @@ function renderRows(events, now) {
     const ids = questionIds(event);
     const cell = (label, className, ...nodes) => element("td", { class: className, "data-label": label }, ...nodes);
     const row = element("tr", {},
-      cell(strings.columns[0], "nowrap", element("button", { type: "button", class: "row-toggle", "aria-expanded": String(open), "aria-controls": open ? detailId : undefined, "data-row-id": id },
+      cell(strings.columns[0], "nowrap", element("button", { type: "button", class: "row-toggle", "aria-expanded": String(open), "aria-controls": open ? detailId : undefined, "data-row-id": id, "data-focus-key": `row:${id}` },
         element("span", { class: "numeric" }, clock(eventTime(event), new Date(eventTime(event)).toDateString() !== today)), icon("chevron", true))),
       cell(strings.columns[1], "", strings.kinds[requestKind(event)], element("span", { class: "subtext" }, requestKind(event) === "tool" ? event.model ?? event.path : event.context?.kind ?? event.path)),
       cell(strings.columns[2], "", ids.length ? element("code", {}, ids.join(", ")) : "–"),
@@ -1270,24 +1288,27 @@ function render() {
   const now = sources.some((source) => source.up) ? Date.now() : Math.max(0, ...sources.map((source) => source.lastGoodAt ?? 0)) || Date.now();
   applyTheme();
   const up = sources.some((source) => source.up);
-  elementById("live").textContent = sources.some((source) => source.seen) ? (up ? currentStrings().live(clock(now)) : currentStrings().disconnected) : currentStrings().connecting;
+  elementById("live").textContent = sources.some((source) => source.seen || source.failedPoll) ? (up ? currentStrings().live(clock(now)) : currentStrings().disconnected) : currentStrings().connecting;
   const events = sources
     .flatMap((source) => source.events)
     .filter((event) => (view.client === "all" || event.client === view.client) && now - eventTime(event) <= WINDOW_MS)
     .sort((a, b) => eventTime(a) - eventTime(b));
+  // The failure streak counts every kept event of every router, whatever the client filter or the 24 h window.
+  const failures = failuresSinceSuccess(sources.flatMap((source) => source.events).sort((a, b) => eventTime(a) - eventTime(b)));
   const requestsOpen = elementById("requests").open;
   // Rebuilding charts and rows under the pointer kills hover and text selection, so only do it
   // when they would actually differ (new data, another filter, or the clock moving on).
-  const next = [view.client, view.outcome, view.limit, requestsOpen, view.lang, effectiveTheme(), events.length, events.at(-1)?.time, sources.map((source) => `${source.up}${source.router?.routing}`).join(), Math.floor(now / HOUR)].join("|");
-  // The masthead chips refresh on every poll, so the status row renders before the change check.
-  const states = renderStatus(now);
-  if (next === signature) return;
-  signature = next;
+  const next = [view.client, view.outcome, view.limit, requestsOpen, view.lang, effectiveTheme(), events.length, events.at(-1)?.time, sources.map((source) => `${source.up}${source.router?.routing}${source.failedPoll}`).join(), Math.floor(now / HOUR), failures.length, failures.at(0)?.time].join("|");
+  const focusKey = focusKeyOf();
   try {
+    // The masthead chips refresh on every poll, so the status row renders before the change check.
+    const states = renderStatus(now);
+    if (next === signature) return;
+    signature = next;
     renderControls();
     const counts = countOutcomes(events);
     const buckets = hourlyBuckets(events, now);
-    renderStatusSentence(statusSentence(events.length, counts, states, failuresSinceSuccess(events)));
+    renderStatusSentence(statusSentence(events.length, counts, states, failures));
     // The kept window ends where every full buffer's kept events begin: the newest of those oldest times.
     const shownSources = sources.filter((source) => view.client === "all" || source.router?.client === view.client);
     const fullSources = shownSources.filter((source) => bufferFull(source, now));
@@ -1306,6 +1327,7 @@ function render() {
       renderRows(events, now);
     }
     renderAdvanced(events);
+    restoreFocusKey(focusKey);
   } catch (error) {
     // Reset the signature so the next tick retries the frame that threw.
     signature = undefined;
@@ -1319,6 +1341,8 @@ async function tick() {
       await Promise.all(sources.map(poll));
       render();
     }
+  } catch (error) {
+    console.error(error);
   } finally {
     setTimeout(tick, POLL_MS);
   }
