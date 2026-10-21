@@ -61,9 +61,12 @@ const num = (env: Env, key: string, fallback: number): number => {
 };
 
 const bool = (env: Env, key: string, fallback: boolean): boolean => {
-  const raw = str(env, key)?.toLowerCase();
+  const raw = str(env, key);
   if (raw === undefined) return fallback;
-  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
+  const value = raw.toLowerCase();
+  if (value === "1" || value === "true" || value === "yes" || value === "on") return true;
+  if (value === "0" || value === "false" || value === "no" || value === "off") return false;
+  throw new Error(`${key} must be one of 1, true, yes, on, 0, false, no, off; got "${raw}"`);
 };
 
 export type Risk = "low" | "medium" | "high";
@@ -72,16 +75,48 @@ export const RISKS: readonly Risk[] = ["low", "medium", "high"];
 /** The threshold a request asked for through its risk level (default: the floor). */
 export const thresholdFor = (config: Pick<Config, "riskThresholds">, risk: Risk | undefined) => config.riskThresholds[risk ?? "low"];
 
+/**
+ * Refuses an endpoint the gateway calls or forwards to unless it is absolute http(s) with no
+ * credentials, query or fragment: keys belong in their own variables. The value is never echoed,
+ * since it may already carry one.
+ */
+const checkEndpoint = (key: string, raw: string): void => {
+  let url: URL | undefined;
+  try {
+    url = new URL(raw);
+  } catch {
+    // Reported below.
+  }
+  if (!url || (url.protocol !== "http:" && url.protocol !== "https:")) {
+    throw new Error(`${key} must be an absolute http or https URL, such as https://api.openai.com/v1`);
+  }
+  if (url.username || url.password || url.search || url.hash) {
+    throw new Error(`${key} must not carry credentials, a query or a fragment: keys go in their own variables`);
+  }
+};
+
 export function loadConfig(env: Env = process.env): Config {
   const jevProvider = resolveProvider(env);
   const onNone = str(env, "JEV_ON_NONE") ?? "force_none";
   if (onNone !== "force_none" && onNone !== "passthrough") {
     throw new Error(`JEV_ON_NONE must be "force_none" or "passthrough", got "${onNone}"`);
   }
+  const port = str(env, "PORT");
+  if (port !== undefined && !(/^\d+$/.test(port) && Number(port) <= 65535)) {
+    throw new Error(`PORT must be an integer from 0 to 65535, got "${port}"`);
+  }
+  const upstreamBaseUrl = str(env, "UPSTREAM_BASE_URL") ?? "https://api.openai.com/v1";
+  checkEndpoint("UPSTREAM_BASE_URL", upstreamBaseUrl);
+  for (const key of ["JEV_URL", "TYPESAFE_BASE_URL"] as const) {
+    // Only the TypeSafe provider reads TYPESAFE_BASE_URL (see resolveUrl), so another gateway must not fail on it.
+    if (key === "TYPESAFE_BASE_URL" && jevProvider !== "typesafe") continue;
+    const raw = str(env, key);
+    if (raw !== undefined) checkEndpoint(key, raw);
+  }
   const config: Config = {
     host: str(env, "HOST") ?? "127.0.0.1",
     port: num(env, "PORT", 8795),
-    upstreamBaseUrl: (str(env, "UPSTREAM_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/+$/, ""),
+    upstreamBaseUrl: upstreamBaseUrl.replace(/\/+$/, ""),
     upstreamApiKey: str(env, "UPSTREAM_API_KEY"),
     routerApiKey: str(env, "ROUTER_API_KEY"),
     argsModel: str(env, "ARGS_MODEL"),

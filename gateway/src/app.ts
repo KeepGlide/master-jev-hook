@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { brotliDecompressSync, gunzipSync, inflateSync, zstdDecompressSync } from "node:zlib";
 import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import { HTTPException } from "hono/http-exception";
 import type { Adapter } from "./adapters/adapter.js";
 import { chatAdapter } from "./adapters/chat.js";
 import { geminiAdapter } from "./adapters/gemini.js";
@@ -42,33 +43,37 @@ const MAX_ROUTED_BODY_BYTES = 32 * 1024 * 1024;
 const MAX_MASTER_BODY_BYTES = 65536;
 
 /** Specific reasons parseDecisionContext (or /master/context itself) can throw; anything else collapses to invalid_context. */
-const CONTEXT_ERROR_REASONS = new Set(["invalid_context", "duplicate_context_ids", "invalid_candidates", "context_too_large", "missing_context"]);
+const CONTEXT_ERROR_REASONS = new Set(["invalid_context", "duplicate_context_ids", "invalid_candidates", "context_too_large", "missing_context", "invalid_objective"]);
 
 const DECODERS: Record<string, (data: Uint8Array, options: { maxOutputLength: number }) => Buffer> = {
+  identity: (data) => Buffer.from(data),
   zstd: zstdDecompressSync,
   gzip: gunzipSync,
   br: brotliDecompressSync,
   deflate: inflateSync,
 };
 
-/** Parse a JSON body, undoing request compression (Codex sends zstd). Undefined if unreadable. */
-function parseBody<Req>(bytes: Uint8Array, encoding: string | undefined): Req | undefined {
+/** Parse a JSON body, undoing request compression (Codex sends zstd). Undefined if unreadable or decoded past `limit`. */
+function parseBody<Req>(bytes: Uint8Array, encoding: string | undefined, limit = MAX_ROUTED_BODY_BYTES): Req | undefined {
   try {
-    const decoder = encoding ? DECODERS[encoding.trim().toLowerCase()] : undefined;
+    const coding = encoding?.trim().toLowerCase();
+    const decoder = coding && Object.hasOwn(DECODERS, coding) ? DECODERS[coding] : undefined;
     if (encoding && !decoder) return undefined;
-    const parsed: unknown = JSON.parse(Buffer.from(decoder ? decoder(bytes, { maxOutputLength: MAX_ROUTED_BODY_BYTES }) : bytes).toString("utf8"));
+    const parsed: unknown = JSON.parse(Buffer.from(decoder ? decoder(bytes, { maxOutputLength: limit }) : bytes).toString("utf8"));
     return parsed && typeof parsed === "object" ? (parsed as Req) : undefined;
   } catch {
     return undefined;
   }
 }
 
+/** Header values must be Latin-1; an error message or a tool name can be anything, and must not turn into a 500. */
+const headerText = (text: string) => text.replace(/[^\x20-\x7e]/g, "?").slice(0, 120);
+
 function decisionHeaders(decision: Decision): Record<string, string> {
   const headers: Record<string, string> = { "x-jev-gateway-mode": decision.mode };
-  // Header values must be Latin-1; an error message can be anything, and must not turn into a 500.
-  if (decision.mode === "passthrough") headers["x-jev-gateway-reason"] = decision.reason.replace(/[^\x20-\x7e]/g, "?").slice(0, 120);
+  if (decision.mode === "passthrough") headers["x-jev-gateway-reason"] = headerText(decision.reason);
   if (decision.mode === "forced" || decision.mode === "direct" || decision.mode === "hint") {
-    headers["x-jev-gateway-tool"] = decision.tool;
+    headers["x-jev-gateway-tool"] = headerText(decision.tool);
   }
   if (decision.jev) {
     headers["x-jev-gateway-confidence"] = decision.jev.confidence.toFixed(3);
@@ -79,6 +84,14 @@ function decisionHeaders(decision: Decision): Record<string, string> {
 
 export function createApp({ config, askJev, fetch: fetchImpl = fetch, log: writeLog = () => {}, events = createEventLog(), dump }: Deps) {
   const app = new Hono();
+
+  // Hono's default answers an unhandled error as plain text; the gateway answers its own JSON shape.
+  app.onError((error, c) => {
+    // An HTTPException carries the status and text its thrower chose, such as a 4xx.
+    if (error instanceof HTTPException) return error.getResponse();
+    console.error(error);
+    return c.json({ error: { message: "master-jev-hook failed while handling the request", type: "server_error" } }, 500);
+  });
 
   /** One routed request: a line in the log, and a row on the dashboard. */
   const log = (entry: Record<string, unknown>) => {
@@ -94,7 +107,7 @@ export function createApp({ config, askJev, fetch: fetchImpl = fetch, log: write
     const copy = response.clone();
     void readUsage(copy).then((usage) =>
       log({ ...entry, status: response.status, durationMs: Math.round(performance.now() - startedAt), ...(usage ? { usage } : {}) }),
-    );
+    ).catch(() => {});
   };
 
   // Routing can be switched off at runtime to measure a baseline: same clients, same traffic,
@@ -195,6 +208,10 @@ export function createApp({ config, askJev, fetch: fetchImpl = fetch, log: write
       reason: `router_error: ${error instanceof Error ? error.message : String(error)}`,
       jev: decision.jev,
     });
+    // A header set that Headers refuses must not become a 500: such a decision goes on as a passthrough.
+    if (decision.mode !== "passthrough") {
+      try { new Headers(decisionHeaders(decision)); } catch (error) { decision = giveUp(error); }
+    }
 
     if (req && decision.mode === "direct") {
       try {
@@ -270,7 +287,7 @@ export function createApp({ config, askJev, fetch: fetchImpl = fetch, log: write
     const forbidden = (message: string, status: 403 | 415 = 403) => c.json({ error: { message, type: status === 403 ? "forbidden" : "invalid_request_error" } }, status);
     const host = (c.req.header("host") ?? new URL(c.req.url).host).toLowerCase();
     if (!config.routerApiKey && !LOCAL_ORIGIN.test(`http://${host}`)) return forbidden("Host not allowed");
-    if (!/^\/(master|router|v1|v1beta)\//.test(c.req.path)) return next();
+    if (!/^\/(master|router|v1|v1beta)(\/|$)/.test(c.req.path)) return next();
     const origin = c.req.header("origin");
     if (origin !== undefined && !LOCAL_ORIGIN.test(origin)) return forbidden("Origin not allowed");
     const json = c.req.header("content-type")?.split(";")[0]?.trim().toLowerCase() === "application/json";
@@ -285,9 +302,11 @@ export function createApp({ config, askJev, fetch: fetchImpl = fetch, log: write
 
   // Answers before the key is checked, so that a launcher can find its gateway. A gateway that
   // has a key is one somebody else may reach: it says that it is up, and nothing about itself.
-  app.get("/health", (c) =>
-    c.json(config.routerApiKey ? { status: "ok" } : { status: "ok", pid: process.pid, upstream: config.upstreamBaseUrl, jev: config.jevProvider }),
-  );
+  app.get("/health", (c) => {
+    // Origin and path only, as index.ts prints it: the upstream URL may carry userinfo or a token in its query.
+    const upstream = new URL(config.upstreamBaseUrl);
+    return c.json(config.routerApiKey ? { status: "ok" } : { status: "ok", pid: process.pid, upstream: upstream.origin + upstream.pathname, jev: config.jevProvider });
+  });
 
   app.use("*", async (c, next) => {
     if (!config.routerApiKey) return next();
@@ -304,8 +323,8 @@ export function createApp({ config, askJev, fetch: fetchImpl = fetch, log: write
    * Accepts any routed wire format; `?format=chat|responses|messages` overrides the guess.
    */
   app.post("/router/decide", routedLimit, async (c) => {
-    const req = parseBody<Record<string, unknown>>(new Uint8Array(await c.req.arrayBuffer()), undefined);
-    if (!req) return c.json({ error: { message: "Body must be a JSON object", type: "invalid_request_error" } }, 400);
+    const req = parseBody<Record<string, unknown>>(new Uint8Array(await c.req.arrayBuffer()), c.req.header("content-encoding"));
+    if (!req || Array.isArray(req)) return c.json({ error: { message: "Body must be a JSON object", type: "invalid_request_error" } }, 400);
     const adapters = { chat: chatAdapter, responses: responsesAdapter, messages: messagesAdapter, gemini: geminiAdapter };
     // Chat Completions and Anthropic Messages both use `messages`; only Anthropic has a top-level
     // `system` or tools described by `input_schema`. Gemini uses `contents`.
@@ -318,7 +337,7 @@ export function createApp({ config, askJev, fetch: fetchImpl = fetch, log: write
           ? "messages"
           : "chat";
     const format = (c.req.query("format") ?? guess) as keyof typeof adapters;
-    const adapter = (adapters[format] ?? adapters[guess]) as Adapter<AnyRequest>;
+    const adapter = (Object.hasOwn(adapters, format) ? adapters[format] : adapters[guess]) as Adapter<AnyRequest>;
     const result = await decideFor(adapter, req);
     log({ event: "route", time: new Date().toISOString(), path: "/router/decide", model: req.model, tools: result.tools ?? 0, ...result.decision, context: result.context });
     const { inspection, ...context } = result.context ?? {};
@@ -329,7 +348,7 @@ export function createApp({ config, askJev, fetch: fetchImpl = fetch, log: write
     if (!routing || c.req.header("x-jev-gateway") === "off") return c.json({ status: "skipped", reason: "routing_disabled" });
     const bytes = new Uint8Array(await c.req.arrayBuffer());
     try {
-      const body = parseBody<Record<string, unknown>>(bytes, undefined);
+      const body = parseBody<Record<string, unknown>>(bytes, c.req.header("content-encoding"), MAX_MASTER_BODY_BYTES);
       if (!body || Object.keys(body).some((k) => !["objective", "context"].includes(k)) || typeof body.objective !== "string" || !body.objective.trim() || body.objective.length > 8000) throw new Error("invalid_objective");
       const supplied = parseDecisionContext(body.context);
       if (!supplied) throw new Error("missing_context");
@@ -350,7 +369,7 @@ export function createApp({ config, askJev, fetch: fetchImpl = fetch, log: write
     if (!routing || c.req.header("x-jev-gateway") === "off") return c.json({ status: "skipped", reason: "routing_disabled" });
     const bytes = new Uint8Array(await c.req.arrayBuffer());
     try {
-      const report = await assessWorkflow(parseBody(bytes, undefined), config, askJev);
+      const report = await assessWorkflow(parseBody(bytes, c.req.header("content-encoding"), MAX_MASTER_BODY_BYTES), config, askJev);
       log({ event: "route", time: new Date().toISOString(), path: "/master/decide", tools: 0, mode: "passthrough", reason: "decision_only", context: report });
       return c.json(report.workflow!);
     } catch {
@@ -360,7 +379,7 @@ export function createApp({ config, askJev, fetch: fetchImpl = fetch, log: write
 
   app.route(
     "/dashboard",
-    dashboardRoutes(config, events, { get: () => routing, set: (enabled) => void (routing = enabled) }),
+    dashboardRoutes(config, events, { get: () => routing, set: (enabled) => { routing = enabled; } }),
   );
 
   app.post("/v1/chat/completions", routedLimit, route(chatAdapter));

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { chatAdapter } from "../src/adapters/chat.js";
-import { NO_TOOL, planTool } from "../src/questions.js";
+import { buildQuestions, NO_TOOL, planTool, TOOL_KEY } from "../src/questions.js";
 import { buildState } from "../src/state.js";
 import type { RouterInput, RouterTool } from "../src/types.js";
 import { chat, fakeJev, fakeUpstream, testConfig } from "./helpers.js";
@@ -33,6 +33,28 @@ describe("planTool", () => {
     const [weather, lights] = (chatAdapter.toInput(chat("hi"), 100) as RouterInput).tools as [RouterTool, RouterTool];
     expect(planTool(weather).closedParams).toBeUndefined();
     expect(planTool(lights).closedParams?.map((param) => param.kind)).toEqual(["enum", "boolean", "enum"]);
+  });
+
+  it("keeps a tool open when a required name has no property schema", () => {
+    const send: RouterTool = { name: "send", kind: "function", parameters: { type: "object", properties: { mode: { enum: ["a", "b"] } }, required: ["mode", "path"] } };
+    expect(planTool(send).closedParams).toBeUndefined();
+  });
+
+  it("keeps a tool open, without throwing, when a parameter or parameters schema is not an object", () => {
+    const badProperty = { name: "t", kind: "function", parameters: JSON.parse('{"type":"object","properties":{"mode":null}}') } as RouterTool;
+    const badSchema = { name: "t", kind: "function", parameters: "abc" } as unknown as RouterTool;
+    expect(() => planTool(badProperty)).not.toThrow();
+    expect(planTool(badProperty).closedParams).toBeUndefined();
+    expect(planTool(badSchema).closedParams).toBeUndefined();
+  });
+
+  it("keeps a tool named __proto__ among the criteria Jev sees", () => {
+    const roster: RouterTool[] = [
+      { name: "__proto__", kind: "function", description: "A tool with an unusual name." },
+      { name: "clock", kind: "function", description: "Tell the current time." },
+    ];
+    const { questions } = buildQuestions(roster, { allowNone: false, withArgs: false });
+    expect(Object.keys((questions[TOOL_KEY] as { criteria: object }).criteria)).toEqual(["__proto__", "clock"]);
   });
 });
 

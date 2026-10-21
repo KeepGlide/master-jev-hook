@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { loadConfig } from "../src/config.js";
 import { createAskJev, resolveModel, resolveProvider } from "../src/jev.js";
 
@@ -146,8 +146,33 @@ describe("asking Jev", () => {
     expect(received?.aborted).toBe(true);
   });
 
-  it("says which variable to set when there is no key", () => {
-    expect(() => createAskJev(loadConfig({ JEV_PROVIDER: "openrouter" }))).toThrow(/OPENROUTER_API_KEY/);
+  it("starts without a key, and names the variable to set only when a call needs one", async () => {
+    const ask = createAskJev(loadConfig({ JEV_PROVIDER: "openrouter" }));
+    await expect(ask(request)).rejects.toThrow(/OPENROUTER_API_KEY/);
+  });
+
+  it("caps the jittered retry wait at 5 s instead of giving up", async () => {
+    vi.useFakeTimers();
+    const jitter = vi.spyOn(Math, "random").mockReturnValue(0.99);
+    try {
+      let n = 0;
+      const f = capture(() => (n++ === 0 ? new Response("x", { status: 429 }) : Response.json(answer)));
+      const pending = createAskJev(loadConfig({ TYPESAFE_API_KEY: "k", JEV_RETRY_BASE_MS: "5000" }), f.fetchImpl)(request);
+      await vi.advanceTimersByTimeAsync(5000);
+      await expect(pending).resolves.toMatchObject({ answers: { tool: { choice: "a" } } });
+      expect(f.calls).toHaveLength(2);
+    } finally {
+      jitter.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it("keeps URLs with credentials or a query out of fetch errors", async () => {
+    const leaky = (async () => {
+      throw new TypeError("Request cannot be constructed from a URL that includes credentials: https://u:s3cret@jev.test/decide?key=s3cret");
+    }) as unknown as typeof fetch;
+    const error = await createAskJev(loadConfig(fast), leaky)(request).catch((e) => e);
+    expect(error.message).toBe("Request cannot be constructed from a URL that includes credentials: <redacted-url>");
   });
 });
 

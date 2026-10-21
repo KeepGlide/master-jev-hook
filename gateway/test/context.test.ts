@@ -74,7 +74,7 @@ describe("context evaluation without tools", () => {
     const missing = await (await app.request("/master/context", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ objective: "Escolha" }) })).json() as any;
     expect(missing).toMatchObject({ status: "fallback", reason: "missing_context" });
     const badObjective = await (await app.request("/master/context", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ objective: "", context: { kind: "comparison", candidates: [{ id: "A", text: "one" }, { id: "B", text: "two" }] } }) })).json() as any;
-    expect(badObjective).toMatchObject({ status: "fallback", reason: "invalid_context" });
+    expect(badObjective).toMatchObject({ status: "fallback", reason: "invalid_objective" });
   });
 
   it("reports context_request_too_large (not a generic evaluation failure) when only the built request overshoots", async () => {

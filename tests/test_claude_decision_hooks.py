@@ -489,12 +489,89 @@ class DecisionHookTests(unittest.TestCase):
             self.assertEqual(claude_jev.redact(raw), expected, raw)
         self.assertEqual(claude_jev.redact({"a": ["Bearer xyz", 3]}), {"a": ["Bearer [REDACTED]", 3]})
 
+    def redact_with_helper(self, raw):
+        sys.path.insert(0, str(self.dir))
+        self.addCleanup(sys.path.remove, str(self.dir))
+        import claude_jev
+        return claude_jev.redact(raw)
+
+    def test_redact_masks_google_api_key(self):
+        self.assertEqual(self.redact_with_helper("maps call with AIzaSyA1234567890abcdefghijklmnopqrstu ok"),
+                         "maps call with [REDACTED] ok")
+
+    def test_redact_masks_stripe_live_keys(self):
+        key = "4eC39HqLyjWDarjtT1zdp7dc"  # gitleaks:allow fixture; 24 alphanumerics, the length of a live key body
+        for prefix in ("sk_live_", "rk_live_"):
+            self.assertEqual(self.redact_with_helper(f"stripe {prefix}{key} ok"), "stripe [REDACTED] ok", prefix)
+
+    def test_redact_masks_gitlab_personal_access_token(self):
+        self.assertEqual(self.redact_with_helper("git remote glpat-ABCDEFGHIJKLMNOPQRST ok"),  # gitleaks:allow fixture
+                         "git remote [REDACTED] ok")
+
+    def test_redact_masks_hugging_face_token(self):
+        self.assertEqual(self.redact_with_helper("hub " + "hf_" + "abcdefghijklmnopqrstuvwxyzABCDEFGH" + " ok"),
+                         "hub [REDACTED] ok")
+
+    def test_redact_masks_jwt(self):
+        jwt = ("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0."  # gitleaks:allow fixture
+               "dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U")
+        self.assertEqual(self.redact_with_helper(f"jwt {jwt} ok"), "jwt [REDACTED] ok")
+
+    def test_redact_masks_cookie_and_session_values(self):
+        cases = {
+            "Cookie: sid=abc123; theme=dark": "Cookie: [REDACTED]",
+            "Set-Cookie: session=xyz; Path=/": "Set-Cookie: [REDACTED]",
+            "session=abc123": "session=[REDACTED]",
+            '{"session": "v4l"}': '{"session": [REDACTED]}',
+        }
+        for raw, expected in cases.items():
+            self.assertEqual(self.redact_with_helper(raw), expected, raw)
+
+    def test_redact_masks_every_cookie_pair_in_header(self):
+        self.assertEqual(self.redact_with_helper("Cookie: a=1; b=2; c=3 ok"), "Cookie: [REDACTED]")
+        self.assertEqual(self.redact_with_helper("cookie: a=1; b=2\nnext line"), "cookie: [REDACTED]\nnext line")
+        self.assertEqual(self.redact_with_helper('{"Cookie": "a=1; b=2"}'), '{"Cookie": [REDACTED]}')
+
+    def test_redact_masks_npm_access_token(self):
+        token = "npm_AbCdEfGhIjKlMnOpQrStUvWxYz0123456789"  # npm_ + 36 alphanumerics
+        self.assertEqual(self.redact_with_helper(f"npm token {token} ok"), "npm token [REDACTED] ok")
+
+    def test_redact_masks_google_oauth_access_token(self):
+        self.assertEqual(self.redact_with_helper("oauth ya29.a0AfH6SMBx9Qk3Lw-Tz_12345 ok"),
+                         "oauth [REDACTED] ok")
+
+    def test_redact_masks_five_part_jwe_without_tail(self):
+        jwe = ("eyJhbGciOiJSU0EtT0FFUCJ9.ZW5jcnlwdGVkLWtleQ.aXYxMjM0NTY3ODk."
+               "Y2lwaGVydGV4dA.dGFnMTIz")  # header, encrypted key, iv, ciphertext, tag
+        self.assertEqual(self.redact_with_helper(f"jwe {jwe} ok"), "jwe [REDACTED] ok")
+
+    def test_redact_masks_password_values(self):
+        cases = {
+            "password: hunter2": "password: [REDACTED]",
+            '{"password": "hunter 2"}': '{"password": [REDACTED]}',
+            "passwd=hunter2 next": "passwd=[REDACTED] next",
+            "DB_PASSWORD=s3cret npm start": "DB_PASSWORD=[REDACTED] npm start",
+        }
+        for raw, expected in cases.items():
+            self.assertEqual(self.redact_with_helper(raw), expected, raw)
+
+    def test_redact_leaves_ordinary_text_unchanged(self):
+        lines = (
+            "The session was long and the cookie jar is full.",
+            "Keep the token budget under 300 and check the AIza prefix in the ledger.",
+            "sk_liveness_check and hf_ are plain words; eyJ alone is a prefix.",
+            "Read the glpat and rk_live docs before the next release.",
+        )
+        for line in lines:
+            self.assertEqual(self.redact_with_helper(line), line)
+
     def test_patterns_stay_fast_on_adversarial_input(self):
         sys.path.insert(0, str(self.dir))
         self.addCleanup(sys.path.remove, str(self.dir))
         import claude_jev
         for unit in ("token-", "api_key.", "a.", "-p", "mysql ", "sshpass ", "find ", "curl |", "systemctl stop ",
-                     "systemctl -a ", "x://a", "Authorization: ", "-u a", "git -C x ", "git --a ", "git -c "):
+                     "systemctl -a ", "x://a", "Authorization: ", "-u a", "git -C x ", "git --a ", "git -c ", "eyJa.",
+                     "eyJa.b.", "Cookie: ", "npm_", "ya29."):
             raw = (unit * 4000)[:4000]
             started = time.perf_counter()
             claude_jev.redact(raw)

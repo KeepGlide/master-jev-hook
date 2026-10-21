@@ -2,51 +2,65 @@
  * Token usage of one LLM call, in one vocabulary whatever the provider's. `input` is everything
  * the model read, cached or not — Anthropic reports its three input buckets separately, OpenAI
  * reports a total with the cached part inside; both end up here as a total plus its cached share.
+ * A count the client sent as `null` is unknown: `undefined`, never zero.
  */
 export interface Usage {
-  input: number;
-  output: number;
+  input: number | undefined;
+  output: number | undefined;
   /** Part of `input` served from the prompt cache (billed at a fraction). */
-  cached: number;
+  cached: number | undefined;
   /** Part of `input` written to the prompt cache (Anthropic only; billed at a premium). */
-  cacheWrite: number;
+  cacheWrite: number | undefined;
   /** Part of `output` spent on hidden reasoning, when the provider says (OpenAI). */
-  reasoning: number;
+  reasoning: number | undefined;
 }
 
 type Raw = Record<string, unknown>;
+/** A count as sent: a number, `null` for unknown, or `undefined` when the field is absent. */
+type Sent = number | null | undefined;
 
-const num = (value: unknown) => (typeof value === "number" && Number.isFinite(value) ? value : 0);
+const sent = (value: unknown): Sent => (typeof value === "number" && Number.isFinite(value) ? value : value === null ? null : undefined);
 const obj = (value: unknown): Raw => (value && typeof value === "object" ? (value as Raw) : {});
+
+/** Store one sent count. Absent leaves the default; unknown never overwrites a count already known. */
+function store(into: Partial<Usage>, key: keyof Usage, value: Sent): void {
+  if (value === undefined) return;
+  if (value !== null) into[key] = value;
+  else if (!(key in into)) into[key] = undefined;
+}
 
 /** Fold one provider `usage` object into the running total; later reports override earlier ones. */
 function merge(into: Partial<Usage>, raw: Raw): void {
   if ("prompt_tokens" in raw || "completion_tokens" in raw) {
     // Chat Completions
-    into.input = num(raw.prompt_tokens);
-    into.output = num(raw.completion_tokens);
-    into.cached = num(obj(raw.prompt_tokens_details).cached_tokens);
-    into.reasoning = num(obj(raw.completion_tokens_details).reasoning_tokens);
+    store(into, "input", sent(raw.prompt_tokens));
+    store(into, "output", sent(raw.completion_tokens));
+    store(into, "cached", sent(obj(raw.prompt_tokens_details).cached_tokens));
+    store(into, "reasoning", sent(obj(raw.completion_tokens_details).reasoning_tokens));
   } else if ("cache_read_input_tokens" in raw || "cache_creation_input_tokens" in raw) {
     // Anthropic, message_start: the input side, with a placeholder output count.
-    into.cached = num(raw.cache_read_input_tokens);
-    into.cacheWrite = num(raw.cache_creation_input_tokens);
-    into.input = num(raw.input_tokens) + into.cached + into.cacheWrite;
-    into.output = num(raw.output_tokens);
+    const fresh = sent(raw.input_tokens);
+    const cached = sent(raw.cache_read_input_tokens);
+    const cacheWrite = sent(raw.cache_creation_input_tokens);
+    store(into, "cached", cached);
+    store(into, "cacheWrite", cacheWrite);
+    if (fresh !== undefined)
+      store(into, "input", fresh === null || cached === null || cacheWrite === null ? null : fresh + (cached ?? 0) + (cacheWrite ?? 0));
+    store(into, "output", sent(raw.output_tokens));
   } else if ("promptTokenCount" in raw || "candidatesTokenCount" in raw) {
     // Google Gemini API (usageMetadata)
-    into.input = num(raw.promptTokenCount);
-    into.output = num(raw.candidatesTokenCount);
-    into.cached = num(raw.cachedContentTokenCount);
+    store(into, "input", sent(raw.promptTokenCount));
+    store(into, "output", sent(raw.candidatesTokenCount));
+    store(into, "cached", sent(raw.cachedContentTokenCount));
   } else {
     // Responses API — or Anthropic's message_delta, which only updates the output count.
     if ("input_tokens" in raw) {
-      into.input = num(raw.input_tokens);
-      into.cached = num(obj(raw.input_tokens_details).cached_tokens);
+      store(into, "input", sent(raw.input_tokens));
+      store(into, "cached", sent(obj(raw.input_tokens_details).cached_tokens));
     }
     if ("output_tokens" in raw) {
-      into.output = num(raw.output_tokens);
-      into.reasoning = num(obj(raw.output_tokens_details).reasoning_tokens);
+      store(into, "output", sent(raw.output_tokens));
+      store(into, "reasoning", sent(obj(raw.output_tokens_details).reasoning_tokens));
     }
   }
 }

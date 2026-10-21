@@ -258,3 +258,24 @@ Conditions for all groups: every must-fix item is in; each is checked in EN and 
 ## 7. How to run it again
 
 Launch five critic groups in parallel, one per group, each with the persona brief and the current page at 1568 px (dark and light) and 390 px. Each critic tags every finding with a severity and a fix line. A consolidator merges the five reports, removes duplicates, and checks each finding against the source with `rg` and short line reads. JEV triage then sorts the findings into adopt, skip and owner, and the owner's rule is applied as the tiebreaker. Two implementer packages edit the same file: one for data and copy, one for layout, a11y and motion. Then run the build, the tests for the dashboard and `cmp` the served page against the file. Restart the gateway service so it serves the new page, and take the screenshots again at 1568 px dark and light and at 390 px. The next round starts from the new screenshots and the skip list in section 4.
+
+## 8. Gateway and dashboard gauntlet, 2026-10-21
+
+Scope: the gateway (`gateway/src`, `gateway/bin`), the Claude hook where it calls the gateway, and the dashboard's
+behaviour. Owner rule: fix errors and adopt non-disruptive gains; discard disruptive and subjective findings; the
+navy aurora E2 layout and the brand pass are decided and were not touched.
+
+- **Rounds:** round 1 (eight critic groups, 53 findings) and round 2 (critics on the fixed tree, 81 findings) ran;
+  the triaged round-2 packages and the round-3 queue were then fixed without a third critic round (JEV: `triaged_only`,
+  0.97). A security review and a correctness review on the whole diff followed; their adopted findings are in.
+- **Adopted:** the list in `CHANGELOG.md`, Unreleased. Root cause of the session `CONNECTION_CLOSED`: the root
+  `.mcp.json` with `${CLAUDE_PLUGIN_ROOT}` was read as a project config.
+- **Discarded as disruptive:** a full CSP with hashes, router-key exposure changes (P11-x; documenting TLS for LAN use
+  is enough), gating no-parameter direct answers on `JEV_DIRECT_CALLS` (reverted after review), and the item set
+  P11-4..6, P15-5, P34-1/2. Out of scope: the hook's local Bash gate (P15-1/3/4).
+- **Open:** OpenRouter's `typesafe/jev-1.13` is a floating alias (P07-1); `events.record` on the live path has no
+  try/catch (internal data only); the dashboard averages still count an unknown token count as 0; the debug dump body
+  is not redacted; `alwaysLoad` in the plugin manifest (P40-2) waits for a schema check; each vitest run leaves a
+  Vite `ssr` directory in `/tmp`.
+- **Readiness for `jev-1.14.0`:** the gateway accepts its answers as-is (same schema); the model is not adopted, see
+  `docs/experiments.md`, 2026-10-21.

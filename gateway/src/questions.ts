@@ -34,7 +34,10 @@ export interface ToolPlan {
   closedParams?: ClosedParam[];
 }
 
+const isObject = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
+
 function closedParam(name: string, schema: JsonSchema, required: boolean): ClosedParam | undefined {
+  if (!isObject(schema)) return undefined;
   if ("const" in schema) return { name, required, kind: "const", value: schema.const as Json };
   if (Array.isArray(schema.enum) && schema.enum.length > 0) {
     if (schema.enum.length === 1) return { name, required, kind: "const", value: schema.enum[0]! };
@@ -56,11 +59,17 @@ export function planTool(tool: RouterTool): ToolPlan {
   // Only function tools take JSON arguments, and without a recognizable object schema
   // there is nothing safe to infer about them.
   if (tool.kind !== "function") return { name: tool.name };
+  if (schema !== undefined && !isObject(schema)) return { name: tool.name };
   if (schema && schema.type !== undefined && schema.type !== "object") return { name: tool.name };
-  const required = new Set(schema?.required ?? []);
+  const properties = schema?.properties ?? {};
+  const required = schema?.required ?? [];
+  // A required name with no property schema can't be filled in closed form, so the tool stays open.
+  if (!isObject(properties) || !Array.isArray(required) || required.some((name) => !Object.hasOwn(properties, name))) {
+    return { name: tool.name };
+  }
   const closedParams: ClosedParam[] = [];
-  for (const [name, property] of Object.entries(schema?.properties ?? {})) {
-    const param = closedParam(name, property, required.has(name));
+  for (const [name, property] of Object.entries(properties)) {
+    const param = closedParam(name, property, required.includes(name));
     if (!param) return { name: tool.name };
     closedParams.push(param);
   }
@@ -72,14 +81,15 @@ export const statedKey = (toolIndex: number, param: string) => `stated:${toolInd
 
 function toolCriteria(tools: RouterTool[]): Record<string, string | null> {
   const limit = Math.min(MAX_DESCRIPTION_CHARS, Math.floor(QUESTION_CHAR_BUDGET / tools.length));
-  const criteria: Record<string, string | null> = {};
-  for (const tool of tools) {
-    const params = Object.keys(tool.parameters?.properties ?? {});
-    // Descriptions lead with what the tool is for; the tail is usage detail Jev doesn't need.
-    const description = tool.description?.trim().slice(0, limit);
-    criteria[tool.name] = description || (params.length ? `Parameters: ${params.join(", ")}` : null);
-  }
-  return criteria;
+  // Object.fromEntries defines each name as an own property, so a tool named `__proto__` stays a criterion.
+  return Object.fromEntries(
+    tools.map((tool): [string, string | null] => {
+      const params = Object.keys(tool.parameters?.properties ?? {});
+      // Descriptions lead with what the tool is for; the tail is usage detail Jev doesn't need.
+      const description = tool.description?.trim().slice(0, limit);
+      return [tool.name, description || (params.length ? `Parameters: ${params.join(", ")}` : null)];
+    }),
+  );
 }
 
 export const shardKey = (index: number) => `shard:${index}`;

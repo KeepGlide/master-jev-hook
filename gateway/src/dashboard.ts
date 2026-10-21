@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import type { Config } from "./config.js";
 import type { EventLog } from "./events.js";
 
@@ -19,17 +19,35 @@ export interface RoutingSwitch {
   set(enabled: boolean): void;
 }
 
+/** The upstream as the dashboard shows it: origin and path only, so userinfo and query never reach the page. */
+const shownUrl = (value: string) => {
+  try {
+    const url = new URL(value);
+    return `${url.origin}${url.pathname}`;
+  } catch {
+    return undefined;
+  }
+};
+
+/** Set on every reply of this page: no MIME sniffing, and no framing by other sites. */
+const hardenHeaders = (c: Context) => {
+  c.header("x-content-type-options", "nosniff");
+  c.header("content-security-policy", "frame-ancestors 'none'");
+};
+
 export function dashboardRoutes(config: Config, events: EventLog, routing: RoutingSwitch) {
   const startedAt = new Date().toISOString();
   const routes = new Hono();
 
   routes.get("/", (c) => {
+    hardenHeaders(c);
     // A tab left open must pick up a new page on reload, never a cached one.
     c.header("cache-control", "no-store");
     return c.html(page);
   });
 
   routes.get("/events", (c) => {
+    hardenHeaders(c);
     const origin = c.req.header("origin");
     if (origin && LOCAL_ORIGIN.test(origin)) {
       c.header("access-control-allow-origin", origin);
@@ -40,7 +58,7 @@ export function dashboardRoutes(config: Config, events: EventLog, routing: Routi
     return c.json({
       router: {
         client: config.client,
-        upstream: config.upstreamBaseUrl,
+        upstream: shownUrl(config.upstreamBaseUrl),
         jevModel: config.jevModel,
         jevProvider: config.jevProvider,
         minConfidence: config.minConfidence,
@@ -61,6 +79,7 @@ export function dashboardRoutes(config: Config, events: EventLog, routing: Routi
    * name the origin of a cross-site POST, and only this machine's own pages may flip the switch.
    */
   routes.post("/routing", (c) => {
+    hardenHeaders(c);
     const origin = c.req.header("origin");
     if (origin && !LOCAL_ORIGIN.test(origin)) return c.json({ error: "local pages only" }, 403);
     if (origin) c.header("access-control-allow-origin", origin);

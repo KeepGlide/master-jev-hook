@@ -1,7 +1,7 @@
-import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApp } from "../src/app.js";
 import { createDump, redactHeaders, summarizeResponse } from "../src/debug.js";
 import { forward } from "../src/upstream.js";
@@ -29,6 +29,38 @@ describe("debug dumps (JEV_DEBUG_DUMP_DIR)", () => {
       "session-id": "[redacted, 3 chars]",
       originator: "codex_exec",
     });
+  });
+
+  it("creates the dump directory private and leaves only finished dumps in it", () => {
+    dir = mkdtempSync(join(tmpdir(), "jev-dump-"));
+    const sub = join(dir, "dumps");
+    createDump(sub)!("other", { ok: true });
+    expect(statSync(sub).mode & 0o777).toBe(0o700);
+    const names = readdirSync(sub);
+    expect(names).toHaveLength(1);
+    expect(names[0]).toMatch(/-other\.json$/);
+    const file = join(sub, names[0]!);
+    expect(statSync(file).mode & 0o777).toBe(0o600);
+    expect(JSON.parse(readFileSync(file, "utf8"))).toEqual({ ok: true });
+  });
+
+  it("tightens an existing dump directory to 0700 and leaves no temporary file behind when the rename fails", () => {
+    dir = mkdtempSync(join(tmpdir(), "jev-dump-"));
+    const sub = join(dir, "dumps");
+    mkdirSync(sub);
+    chmodSync(sub, 0o755);
+    const startedAt = 1_700_000_000_000;
+    vi.useFakeTimers();
+    vi.setSystemTime(startedAt);
+    try {
+      // A directory already sitting at the final name makes the rename fail (EISDIR).
+      mkdirSync(join(sub, `${startedAt}-0001-other.json`));
+      createDump(sub)!("other", { ok: true });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(statSync(sub).mode & 0o777).toBe(0o700);
+    expect(readdirSync(sub)).toEqual([`${startedAt}-0001-other.json`]);
   });
 
   it("writes the decoded request, the rewrite and the reply's usage; nothing when off", async () => {

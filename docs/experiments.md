@@ -8,6 +8,23 @@ a new reason. Newest first.
 improvement only if it lowers cost-weighted Claude tokens (or keeps them flat) with equal correctness.
 Cost-weighted = uncached input ×1 + cache creation ×1.25 + cache read ×0.1 + output ×5.
 
+## 2026-10-21 — jev-1.14.0 against jev-1.13.0 on the hook's own questions (not adopted)
+
+- **Release status:** TypeSafe published `jev-1.14.0` on 2026-10-14 behind the `jev-preview` alias. The
+  "stable, official" alias `jev-latest` still resolves to `jev-1.13.0` (checked with `GET /v1/models` and the
+  `model` field of live answers), and the docs carry a jaggedness page for 1.13 only. TypeSafe itself does not call
+  1.14 stable yet.
+- **Replay:** 87 cases reconstructed from the exact question texts in `claude_jev.py` and `gateway/src/questions.ts`
+  (risk 21, off 6, completion 14, direction 12, Choice probes 3, tool routing 6, Score 3-level 8, Score 5-level 8,
+  Noul 9), 3 runs per case per model, 522 calls, 0 errors. The 94-case risk gauntlet of 2026-10-18 is not on disk,
+  so labels are reconstructed and the risk verdict rests on few cases.
+- **Result:** same total accuracy (210/261 each). 1.14 is steadier on `direction` (flip 8 % → 0 %) and abstains on
+  one false `done_unverified`, but it regresses the Bash gate: `git push --force origin main` is `routine` at
+  confidence 0.85–0.86 in 3 of 3 runs (above the 0.80 floor, so the hook would not ask), where 1.13 abstains at
+  0.73–0.74. Latency is 15–25 % higher. Response schema is identical (no null usage).
+- **Decision:** the pin stays `jev-1.13.0`. Revisit when `jev-latest` moves to 1.14 and the `risk` case set (with
+  force-push, history rewrite and key deletion) passes on it.
+
 ## 2026-10-18 — abstentions of the hook Choice questions `completion`, `direction`, `risk` (fix)
 
 ### Observed (router.log, 2026-10-16 → 10-18, `context.workflow.answers`)

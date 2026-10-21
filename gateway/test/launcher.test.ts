@@ -1,7 +1,10 @@
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { execFile, execFileSync, spawn, type ChildProcess } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createServer } from "node:http";
+import { tmpdir } from "node:os";
+import { delimiter, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 
 // @ts-ignore: bin/ is plain JavaScript outside the tsconfig include; resolved at runtime.
 const clients = await import("../bin/clients.mjs");
@@ -169,5 +172,295 @@ describe("existing launchers", () => {
     expect(claude.defaultPort).toBe(8797);
     expect(claude.upstream()).toBe("https://api.anthropic.com/v1");
     expect(claude.env!(origin)).toEqual({ ANTHROPIC_BASE_URL: origin });
+  });
+});
+
+// Only children this file spawns and fake /health servers are touched below; no real router is signalled.
+const routerEntry = resolve(fileURLToPath(new URL("..", import.meta.url)), "src/index.ts");
+const distEntry = resolve(fileURLToPath(new URL("..", import.meta.url)), "dist/index.js");
+const ownChildren: ChildProcess[] = [];
+const scratchDirs: string[] = [];
+
+afterAll(() => {
+  for (const child of ownChildren) child.kill();
+  for (const dir of scratchDirs) rmSync(dir, { recursive: true, force: true });
+});
+
+const spawnChild = (args: string[] = []) => {
+  const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", ...args], { stdio: "ignore" });
+  ownChildren.push(child);
+  return child;
+};
+
+const isAlive = (child: ChildProcess) => child.exitCode === null && child.signalCode === null;
+
+/** A HOME with an optional pid file for the opencode router, so the launcher never touches the real state. */
+const stateHome = (pidFile?: string) => {
+  const home = mkdtempSync(join(tmpdir(), "jev-launcher-"));
+  scratchDirs.push(home);
+  mkdirSync(join(home, ".master-jev-hook"));
+  if (pidFile !== undefined) writeFileSync(join(home, ".master-jev-hook", "opencode.pid"), pidFile);
+  return home;
+};
+
+/** Stand-in for a router's /health only; it forwards nothing. The first `failFirst` answers are 503. */
+const fakeHealth = (body: object, failFirst = 0) =>
+  new Promise<{ port: number; close: () => Promise<void> }>((ready) => {
+    let answers = 0;
+    const server = createServer((_request, response) => {
+      if (answers++ < failFirst) {
+        response.statusCode = 503;
+        return response.end();
+      }
+      response.end(JSON.stringify(body));
+    });
+    server.listen(0, "127.0.0.1", () =>
+      ready({
+        port: (server.address() as { port: number }).port,
+        close: () => new Promise<void>((closed) => server.close(() => closed())),
+      }),
+    );
+  });
+
+const runCli = (args: string[], env: Record<string, string>, nodeArgs: string[] = []) =>
+  new Promise<{ code: number; stdout: string; stderr: string }>((done) =>
+    execFile(process.execPath, [...nodeArgs, launcherBin, ...args], { env: { ...process.env, ...env }, timeout: 30_000 }, (error, stdout, stderr) =>
+      done({ code: error ? ((error as { code?: number }).code ?? 1) : 0, stdout, stderr }),
+    ),
+  );
+
+/**
+ * Runs the launcher as another platform would see it: a preload replaces process.platform, and a fake
+ * `ps` (first on PATH) prints `ps.command` for `ps.pid` only, so no real process is inspected there.
+ */
+const runOnPlatform = (platform: string, args: string[], env: Record<string, string>, ps?: { pid: number; command: string }) => {
+  const dir = mkdtempSync(join(tmpdir(), "jev-platform-"));
+  scratchDirs.push(dir);
+  const preload = join(dir, "platform.mjs");
+  writeFileSync(preload, `Object.defineProperty(process, "platform", { value: ${JSON.stringify(platform)} });\n`);
+  const bin = join(dir, "bin");
+  mkdirSync(bin);
+  const fakePs = ["#!/bin/sh", 'if [ "$2" = "$FAKE_PS_PID" ]; then printf "%s\\n" "$FAKE_PS_COMMAND"; exit 0; fi', "exit 1", ""].join("\n");
+  writeFileSync(join(bin, "ps"), fakePs, { mode: 0o755 });
+  return runCli(
+    args,
+    { ...env, PATH: `${bin}${delimiter}${process.env.PATH}`, FAKE_PS_PID: String(ps?.pid ?? -1), FAKE_PS_COMMAND: ps?.command ?? "" },
+    ["--import", pathToFileURL(preload).href],
+  );
+};
+
+const pidFileOf = (home: string) => join(home, ".master-jev-hook", "opencode.pid");
+
+describe("launcher --stop only signals a process it can confirm is the router (P19-1)", () => {
+  it("refuses a stale pid file that names a process which is not the router", async () => {
+    const child = spawnChild();
+    const out = await runCli(["--stop"], { HOME: stateHome(String(child.pid)), JEV_OPENCODE_PORT: "1" });
+    expect(out.code).toBe(1);
+    expect(out.stderr).toContain(`refusing to stop pid ${child.pid}`);
+    expect(out.stdout).not.toContain("stopped router");
+    expect(isAlive(child)).toBe(true);
+  });
+
+  it("stops the pid /health reports, even when its command line is not the router, and leaves the filed pid alone", async () => {
+    const reported = spawnChild();
+    const filed = spawnChild();
+    const exited = new Promise((done) => reported.once("exit", done));
+    const health = await fakeHealth({ status: "ok", pid: reported.pid, upstream: "https://llm.test/v1" });
+    try {
+      const out = await runCli(["--stop"], { HOME: stateHome(String(filed.pid)), JEV_OPENCODE_PORT: String(health.port) });
+      expect(out.code).toBe(0);
+      expect(out.stdout).toContain(`stopped router (pid ${reported.pid})`);
+      await exited;
+      expect(isAlive(filed)).toBe(true);
+    } finally {
+      await health.close();
+    }
+  });
+
+  it("stops a process whose command line runs this gateway", async () => {
+    const child = spawnChild([routerEntry]);
+    const exited = new Promise((done) => child.once("exit", done));
+    const out = await runCli(["--stop"], { HOME: stateHome(String(child.pid)), JEV_OPENCODE_PORT: "1" });
+    expect(out.code).toBe(0);
+    expect(out.stdout).toContain(`stopped router (pid ${child.pid})`);
+    await exited;
+  });
+
+  it("stops a router started from dist/index.js while the checkout runs src/index.ts", async () => {
+    const child = spawnChild([distEntry]);
+    const exited = new Promise((done) => child.once("exit", done));
+    const out = await runCli(["--stop"], { HOME: stateHome(String(child.pid)), JEV_OPENCODE_PORT: "1" });
+    expect(out.code).toBe(0);
+    expect(out.stdout).toContain(`stopped router (pid ${child.pid})`);
+    await exited;
+  });
+});
+
+describe("launcher --stop after a reboot or a crash (the pid file names a dead process)", () => {
+  it("reports no router, removes the pid file, and exits 0", async () => {
+    const child = spawnChild();
+    const exited = new Promise((done) => child.once("exit", done));
+    child.kill();
+    await exited;
+    const home = stateHome(String(child.pid));
+    const out = await runCli(["--stop"], { HOME: home, JEV_OPENCODE_PORT: "1" });
+    expect(out.code).toBe(0);
+    expect(out.stdout).toContain("no router was running");
+    expect(out.stderr).toBe("");
+    expect(existsSync(pidFileOf(home))).toBe(false);
+  });
+});
+
+describe("launcher --stop on macOS and Windows (P19-1)", () => {
+  it("darwin: refuses a stale pid whose ps command is not the router", async () => {
+    const child = spawnChild();
+    const home = stateHome(String(child.pid));
+    const out = await runOnPlatform("darwin", ["--stop"], { HOME: home, JEV_OPENCODE_PORT: "1" }, { pid: child.pid!, command: "/usr/bin/sleep 100" });
+    expect(out.code).toBe(1);
+    expect(out.stderr).toContain(`refusing to stop pid ${child.pid}`);
+    expect(out.stdout).not.toContain("stopped router");
+    expect(isAlive(child)).toBe(true);
+  });
+
+  it("darwin: stops the process whose ps command runs this gateway", async () => {
+    const child = spawnChild([routerEntry]);
+    const exited = new Promise((done) => child.once("exit", done));
+    const home = stateHome(String(child.pid));
+    const out = await runOnPlatform("darwin", ["--stop"], { HOME: home, JEV_OPENCODE_PORT: "1" }, { pid: child.pid!, command: `node ${routerEntry}` });
+    expect(out.code).toBe(0);
+    expect(out.stdout).toContain(`stopped router (pid ${child.pid})`);
+    await exited;
+  });
+
+  it("win32: refuses without signalling, because it cannot confirm the router", async () => {
+    const child = spawnChild();
+    const home = stateHome(String(child.pid));
+    const out = await runOnPlatform("win32", ["--stop"], { HOME: home, JEV_OPENCODE_PORT: "1" });
+    expect(out.code).toBe(1);
+    expect(out.stderr).toContain(`refusing to stop pid ${child.pid}`);
+    expect(out.stderr).toContain("Windows cannot confirm");
+    expect(out.stderr).toContain("Nothing was signalled");
+    expect(out.stdout).not.toContain("stopped router");
+    expect(isAlive(child)).toBe(true);
+  });
+
+  it("win32: stops the pid a live router reports on /health, since the router names itself", async () => {
+    const child = spawnChild();
+    const exited = new Promise((done) => child.once("exit", done));
+    const health = await fakeHealth({ status: "ok", pid: child.pid, upstream: "https://llm.test/v1" });
+    try {
+      const out = await runOnPlatform("win32", ["--stop"], { HOME: stateHome(), JEV_OPENCODE_PORT: String(health.port) });
+      expect(out.code).toBe(0);
+      expect(out.stdout).toContain(`stopped router (pid ${child.pid})`);
+      expect(out.stderr).not.toContain("refusing");
+      await exited;
+    } finally {
+      await health.close();
+    }
+  });
+});
+
+describe("launcher removes the pid file only after the identity check passes (P19-5, P19-6)", () => {
+  it("keeps the pid file when it refuses the pid", async () => {
+    const child = spawnChild();
+    const home = stateHome(String(child.pid));
+    const out = await runCli(["--stop"], { HOME: home, JEV_OPENCODE_PORT: "1" });
+    expect(out.code).toBe(1);
+    expect(existsSync(pidFileOf(home))).toBe(true);
+    expect(isAlive(child)).toBe(true);
+  });
+
+  it("removes the pid file once the confirmed router is stopped", async () => {
+    const child = spawnChild([routerEntry]);
+    const exited = new Promise((done) => child.once("exit", done));
+    const home = stateHome(String(child.pid));
+    const out = await runCli(["--stop"], { HOME: home, JEV_OPENCODE_PORT: "1" });
+    expect(out.code).toBe(0);
+    expect(existsSync(pidFileOf(home))).toBe(false);
+    await exited;
+  });
+});
+
+describe("launcher reports an unverifiable upstream instead of undefined (P19-3)", () => {
+  it("--status says the upstream is not verifiable when /health hides it", async () => {
+    const health = await fakeHealth({ status: "ok" });
+    try {
+      const out = await runCli(["--status"], { HOME: stateHome(), JEV_OPENCODE_PORT: String(health.port) });
+      expect(out.stdout).toContain("upstream not verifiable");
+      expect(out.stdout).not.toContain("undefined");
+    } finally {
+      await health.close();
+    }
+  });
+
+  it("--start accepts a running router whose upstream is hidden, and says so", async () => {
+    const health = await fakeHealth({ status: "ok" });
+    try {
+      const out = await runCli(["--start"], { HOME: stateHome(), JEV_OPENCODE_PORT: String(health.port) });
+      expect(out.code).toBe(0);
+      expect(out.stderr).toContain("upstream is not verifiable");
+      expect(out.stderr).not.toContain("undefined");
+    } finally {
+      await health.close();
+    }
+  });
+});
+
+describe("launcher validates the router port (P19-4)", () => {
+  it.each(["abc", "0", "65536", "1.5", ""])("fails with a clear message for JEV_OPENCODE_PORT=%j", async (value) => {
+    const out = await runCli(["--status"], { HOME: stateHome(), JEV_OPENCODE_PORT: value });
+    expect(out.code).toBe(1);
+    expect(out.stderr).toContain("JEV_OPENCODE_PORT must be a whole number from 1 to 65535");
+    expect(out.stderr).not.toContain("NaN");
+  });
+});
+
+describe("launcher compares upstreams in the /health form (origin + path)", () => {
+  it("--start accepts a running router whose path-less upstream /health reports with a trailing slash", async () => {
+    const health = await fakeHealth({ status: "ok", upstream: "https://generativelanguage.googleapis.com/" });
+    const home = stateHome();
+    try {
+      const out = await runCli(["--start"], {
+        HOME: home,
+        JEV_OPENCODE_PORT: String(health.port),
+        JEV_OPENCODE_UPSTREAM_BASE_URL: "https://generativelanguage.googleapis.com",
+        TYPESAFE_API_KEY: "test-key",
+        JEV_SKIP_PROJECT_ENV: "1",
+      });
+      expect(out.stderr).not.toContain("forwards to");
+      expect(out.code).toBe(0);
+    } finally {
+      await health.close();
+    }
+  });
+});
+
+describe("launcher checks the upstream when another router holds the port (P19-4 r2)", () => {
+  it("--start refuses a router that won the port and forwards elsewhere", async () => {
+    // The first /health answer fails, so the launcher starts its own router; that router cannot bind
+    // the taken port, and the router that answers forwards to another upstream.
+    const health = await fakeHealth({ status: "ok", upstream: "https://other.test/v1" }, 1);
+    const home = stateHome();
+    try {
+      const out = await runCli(["--start"], {
+        HOME: home,
+        JEV_OPENCODE_PORT: String(health.port),
+        TYPESAFE_API_KEY: "test-key",
+        JEV_SKIP_PROJECT_ENV: "1",
+      });
+      expect(out.code).toBe(1);
+      expect(out.stderr).toContain("forwards to https://other.test/v1, expected https://api.openai.com/v1");
+      expect(out.stdout).not.toContain("router up on");
+    } finally {
+      await health.close();
+      // Stop the router child this test made the launcher spawn, if it is still up.
+      if (existsSync(pidFileOf(home))) {
+        try {
+          process.kill(Number(readFileSync(pidFileOf(home), "utf8")));
+        } catch {
+          // already gone
+        }
+      }
+    }
   });
 });

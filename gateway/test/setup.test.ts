@@ -1,13 +1,24 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, statSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 // @ts-expect-error plain ESM module without types
 import { configuredProvider, loadProviders, runSetup, saveEnv, upsertEnv, validateKey } from "../bin/setup.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const providers = loadProviders(ROOT);
+
+// Temp dirs made by these tests are removed after the file, by their exact path.
+const scratch: string[] = [];
+const makeScratch = (prefix: string) => {
+  const dir = mkdtempSync(join(tmpdir(), prefix));
+  scratch.push(dir);
+  return dir;
+};
+afterAll(() => {
+  for (const dir of scratch) rmSync(dir, { recursive: true, force: true });
+});
 
 /** A scripted user: answers are handed out in order, and everything printed is kept. */
 function script(answers: string[]) {
@@ -97,7 +108,7 @@ describe("validateKey", () => {
 
 describe("saving and launching", () => {
   it("writes the key to a file only its owner can read", () => {
-    const file = join(mkdtempSync(join(tmpdir(), "jev-setup-")), "nested", ".env");
+    const file = join(makeScratch("jev-setup-"), "nested", ".env");
     saveEnv(file, { JEV_PROVIDER: "typesafe", TYPESAFE_API_KEY: "secret" });
     saveEnv(file, { TYPESAFE_API_KEY: "rotated" });
     expect(readFileSync(file, "utf8")).toBe("JEV_PROVIDER=typesafe\nTYPESAFE_API_KEY=rotated\n");
@@ -105,7 +116,7 @@ describe("saving and launching", () => {
   });
 
   it("without a terminal, a launcher names what is missing instead of hanging on a question", () => {
-    const home = mkdtempSync(join(tmpdir(), "jev-home-"));
+    const home = makeScratch("jev-home-");
     const env = { PATH: process.env.PATH, HOME: home, JEV_CODEX_PORT: "8999", JEV_SKIP_PROJECT_ENV: "1" };
     let output = "";
     try {
