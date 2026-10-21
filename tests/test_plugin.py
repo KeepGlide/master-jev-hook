@@ -33,7 +33,10 @@ class PluginTests(unittest.TestCase):
         self.assertTrue((ROOT / "skills/master-jev-hook/SKILL.md").is_file())
 
     def test_mcp_server_runs_the_bundled_adapter(self):
-        servers = json.loads((ROOT / ".mcp.json").read_text(encoding="utf-8"))["mcpServers"]
+        self.assertFalse((ROOT / ".mcp.json").exists())  # Read as project scope, where ${CLAUDE_PLUGIN_ROOT} is not expanded.
+        manifest = json.loads((ROOT / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(manifest["mcpServers"], "./.claude-plugin/mcp.json")
+        servers = json.loads((ROOT / manifest["mcpServers"]).read_text(encoding="utf-8"))["mcpServers"]
         server = servers[install.NAME]
         self.assertEqual(server["command"], "node")
         self.assertEqual(server["args"], ["${CLAUDE_PLUGIN_ROOT}/gateway/bin/master-jev-mcp.mjs"])
