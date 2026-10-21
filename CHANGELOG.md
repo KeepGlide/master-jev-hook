@@ -6,6 +6,50 @@ versions follow SemVer and the gateway's `package.json`. The measurements behind
 
 ## [Unreleased]
 
+### Fixed
+
+- **The MCP server no longer fails to start when Claude Code is opened inside this repository.** The root `.mcp.json`
+  was read as a project-scope config, where `${CLAUDE_PLUGIN_ROOT}` is not expanded, so `node` got a literal path and
+  exited before the handshake (`CONNECTION_CLOSED`). The plugin's server definition moved to
+  `.claude-plugin/mcp.json` and `plugin.json` points there.
+- **Gateway and dashboard gauntlet (2026-10-21).** One loop of critics over the gateway, launcher, hook and dashboard,
+  under the owner rule "errors and non-disruptive gains only; layout is decided". Adopted:
+  - credentials never leave in output: `/health`, the dashboard and the startup line show the upstream as origin and
+    path only; JEV and upstream fetch errors no longer echo a credential-bearing URL; `UPSTREAM_BASE_URL`, `JEV_URL`
+    and `TYPESAFE_BASE_URL` with userinfo, query or fragment are refused at start;
+  - the Claude hook redacts more secret formats before state leaves the machine (Google `AIza`, Stripe live keys,
+    GitLab `glpat-`, Hugging Face `hf_`, npm `npm_`, Google OAuth `ya29.`, JWT/JWE, whole `Cookie:` headers, cookie and
+    session values);
+  - request handling: `Content-Encoding` honoured on `/router/decide` and `/master/*` with the decoded size capped by
+    the route's own limit, `identity` encoding accepted, array bodies refused, `invalid_objective` returned as its own
+    reason, unexpected errors answered as JSON, prototype-named tools and arguments kept intact, `none_of_these`
+    reserved like `no_tool_needed`;
+  - the workflow `ok` count skips skipped steps and an abstained choice is `null`;
+  - client usage: a token count sent as `null` is unknown, not zero, and never erases a known count;
+  - events: the tail read keeps the first line at an exact line boundary, and one bad log line no longer stops the
+    replay; the debug dump directory is private (0700) and dumps are written atomically;
+  - launcher `--stop` confirms the pid is the gateway before signalling it (Linux, macOS; a stale pid file of a dead
+    process is cleaned up as before), and a router that won the port is checked for its upstream;
+  - dashboard: the first hourly bar takes the partial hour, the failure streak ignores the active filter, the page says
+    offline after its gateway's first failed poll, five missing reason labels exist in both languages, and keyboard
+    focus survives a re-render. The layout did not change;
+  - the dashboard responses send `X-Content-Type-Options: nosniff` and `frame-ancestors 'none'`;
+  - the MCP server reports the package version; tests no longer leave temp directories behind.
+
+### Changed
+
+- **Invalid boolean or port values in the gateway env now stop the start with a clear message** instead of silently
+  turning a feature off. A missing JEV key no longer stops the gateway at start: it prints one warning line and each
+  JEV call reports the missing variable.
+
+### Not changed, on purpose
+
+- **The JEV model stays pinned to `jev-1.13.0`.** `jev-1.14.0` (2026-10-14) is still a preview (`jev-latest` points to
+  1.13), and our replay found a Bash-gate regression on it: `git push --force origin main` passes as `routine` above
+  the 0.80 floor. Record: `docs/experiments.md`, 2026-10-21.
+- **No-parameter tools still get a direct answer with `JEV_DIRECT_CALLS=false`.** A critic proposed gating them on the
+  flag; it would add an upstream round trip per request under the default config, so it was reverted as disruptive.
+
 ## [1.3.0-beta.2] - 2026-10-19
 
 ### Changed
