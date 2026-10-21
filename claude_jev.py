@@ -75,13 +75,18 @@ STOP_LIMIT = 3  # feedbacks per session
 DRIFT_EVERY = 30  # tool calls between checks
 KEEP_NOUL = 0.7  # minimum probability to keep an item during compaction
 # Best-effort removal of obvious secrets before anything leaves the machine.
-SENSITIVE = r"(?<![\w.-])(?=[\w.-]*?(?:key|token|secret|passw(?:or)?d|auth(?:orization|entication)?(?![a-z])|credential))[\w.-]*+"
+SENSITIVE = r"(?<![\w.-])(?=[\w.-]*?(?:key|token|secret|passw(?:or)?d|auth(?:orization|entication)?(?![a-z])|credential|cookie|session))[\w.-]*+"
 VALUE = r"(\"[^\"]*\"|'[^']*'|[^\s\"',;&|]+)"
 SECRETS = (
     (re.compile(r"(?<![a-z0-9+.-])([a-z][a-z0-9+.-]*://)[^/\s@]+@", re.I), r"\1[REDACTED]@"),  # URL userinfo
     # Bearer anywhere; Basic/Token/Digest only after an Authorization header, since they are also common words.
     (re.compile(r"(\bBearer|\b(?:proxy-)?authorization[\"']?\s*[=:]\s*[\"']?(?:Basic|Token|Digest))\s+[^\s\"']+", re.I), r"\1 [REDACTED]"),
-    (re.compile(r"\b(?:sk-[\w-]{10,}|gh[pousr]_\w{10,}|github_pat_\w{10,}|AKIA[0-9A-Z]{16}|xox[abeprs]-[\w-]{10,})"), "[REDACTED]"),
+    (re.compile(r"\b(?:sk-[\w-]{10,}|gh[pousr]_\w{10,}|github_pat_\w{10,}|AKIA[0-9A-Z]{16}|xox[abeprs]-[\w-]{10,}"
+                r"|AIza[\w-]{30,}|(?:sk|rk)_live_[0-9a-zA-Z]{24,}|glpat-[\w-]{20,}|hf_[0-9A-Za-z]{30,}"
+                r"|npm_[0-9A-Za-z]{36}|ya29\.[\w-]{20,})"), "[REDACTED]"),
+    (re.compile(r"\beyJ[\w-]+(?:\.[\w-]*){2,4}"), "[REDACTED]"),  # JWT/JWE: base64url parts, 3 to 5 of them
+    # A cookie header holds `;`-separated pairs, so the whole value is redacted, not just the first pair.
+    (re.compile(r"(\b(?:set-)?cookie[\"']?\s*:\s*)(?![\"'\s])[^\r\n\"']+", re.I), r"\1[REDACTED]"),
     (re.compile(rf"({SENSITIVE}[\"']?\s*[=:]\s*)(?!(?:Bearer|Basic|Token|Digest)\s){VALUE}", re.I), r"\1[REDACTED]"),
     (re.compile(rf"((?<!\S)--(?:password|token|api-key|secret)(?:=|\s+)){VALUE}"), r"\1[REDACTED]"),
     (re.compile(r"((?<!\S)-u\s+[\"']?[^\s:\"']+:)[^\s;&|\"']+"), r"\1[REDACTED]"),  # curl-style user:password
