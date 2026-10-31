@@ -10,7 +10,7 @@
 
 [![Version](https://img.shields.io/github/v/release/KeepGlide/master-jev-hook?include_prereleases&sort=semver&color=2BB8AE&label=version)](https://github.com/KeepGlide/master-jev-hook/releases) [![License](https://img.shields.io/badge/license-Apache--2.0-1E2A47)](LICENSE) [![Platform](https://img.shields.io/badge/platform-Linux%20and%20macOS-1E2A47)](#-prerequisites) [![Python](https://img.shields.io/badge/python-%E2%89%A53.11-1E2A47)](#-prerequisites) [![Node](https://img.shields.io/badge/node-%E2%89%A522.15-1E2A47)](#-prerequisites)
 
-[Installation](#-installation) · [Usage](#-usage) · [Changelog](CHANGELOG.md) · [Report a bug](https://github.com/KeepGlide/master-jev-hook/issues/new) · [Security](SECURITY.md)
+[🌐 Website](https://keepglide.com/products) · [Installation](#-installation) · [Usage](#-usage) · [Changelog](CHANGELOG.md) · [Report a bug](https://github.com/KeepGlide/master-jev-hook/issues/new) · [Security](SECURITY.md)
 
 </div>
 
